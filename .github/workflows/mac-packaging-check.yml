@@ -30,8 +30,8 @@ jobs:
           set -euo pipefail
           dmg="$(find out/make -type f -name '*.dmg' -print -quit)"
           test -n "$dmg"
-          volume="$(mktemp -d "$RUNNER_TEMP/taste-atlas-volume.XXXXXX")"
+          volume="$(mktemp -d "$RUNNER_TEMP/tastemate-volume.XXXXXX")"
           trap 'hdiutil detach "$volume" >/dev/null 2>&1 || true; rm -rf "$volume"' EXIT
           hdiutil attach -nobrowse -readonly -mountpoint "$volume" "$dmg"
-          test -d "$volume/Taste Atlas.app"
+          test -d "$volume/TasteMate.app"
           test -L "$volume/Applications"

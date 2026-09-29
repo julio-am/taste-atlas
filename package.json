@@ -1,7 +1,7 @@
 {
-  "name": "taste-atlas",
-  "version": "0.2.3",
-  "productName": "Taste Atlas",
+  "name": "tastemate",
+  "version": "0.3.0",
+  "productName": "TasteMate",
   "description": "A local taste profile for design and writing references",
   "author": "Julio Medina",
   "homepage": "https://github.com/julio-am/taste-atlas",

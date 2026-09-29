@@ -5,9 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 
 if (process.platform !== 'darwin') throw new Error('The GUI smoke check needs a macOS runner.');
-const root = path.resolve('out', `Taste Atlas-darwin-${process.arch}`);
-const app = path.join(root, 'Taste Atlas.app');
-const executable = path.join(app, 'Contents', 'MacOS', 'taste-atlas');
+const root = path.resolve('out', `TasteMate-darwin-${process.arch}`);
+const app = path.join(root, 'TasteMate.app');
+const executable = path.join(app, 'Contents', 'MacOS', 'tastemate');
 const info = path.join(app, 'Contents', 'Info.plist');
 const minimum = execFileSync('plutil', ['-extract', 'LSMinimumSystemVersion', 'raw', '-o', '-', info], { encoding: 'utf8' }).trim();
 if (minimum !== '13.0.0') throw new Error(`Unexpected macOS minimum: ${minimum}`);
@@ -16,11 +16,11 @@ const expectedArch = process.arch === 'x64' ? 'x86_64' : process.arch;
 if (!architectures.includes(expectedArch)) throw new Error(`No ${expectedArch} slice in packaged app: ${architectures}`);
 console.log(`Mac bundle: minimum macOS ${minimum}, architectures ${architectures.join(', ')}`);
 
-const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'taste-atlas-gui-'));
+const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tastemate-gui-'));
 const traceFile = path.join(dataDir, 'startup.log');
 const port = 18000 + Math.floor(Math.random() * 20000);
 const child = spawn(executable, [`--remote-debugging-port=${port}`], {
-  env: { ...process.env, TASTE_ATLAS_DIR: dataDir, TASTE_ATLAS_DIAGNOSTICS: traceFile }, stdio: ['ignore', 'pipe', 'pipe'],
+  env: { ...process.env, TASTEMATE_DIR: dataDir, TASTEMATE_DIAGNOSTICS: traceFile }, stdio: ['ignore', 'pipe', 'pipe'],
 });
 let output = '';
 let exited = false;
@@ -60,7 +60,7 @@ try {
       if (page) {
         const state = await inspectPage(page.webSocketDebuggerUrl);
         last = JSON.stringify(state);
-        if (state?.title === 'Taste Atlas' && state?.collection === 'All references' && state?.filters > 0) {
+        if (state?.title === 'TasteMate' && state?.collection === 'All references' && state?.filters > 0) {
           const api = await fetch(new URL('/api/state', page.url));
           if (!api.ok) throw new Error(`Local API returned ${api.status}`);
           console.log(`Packaged Mac GUI passed: ${last}`);

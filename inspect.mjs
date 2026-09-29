@@ -39,7 +39,7 @@ export async function inspectUrl(input) {
     if (!['http:', 'https:'].includes(url.protocol) || !publicHost(url.hostname) || url.username || url.password) throw new Error('Use a public http or https URL.');
     const addresses = await dns.lookup(url.hostname, { all: true });
     if (!addresses.length || addresses.some(x => !publicAddress(x.address))) throw new Error('Private network addresses are not allowed.');
-    const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(8000), headers: { 'User-Agent': 'TasteAtlas/0.1 (personal reference capture)', Accept: 'text/html' } });
+    const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(8000), headers: { 'User-Agent': 'TasteMate/0.3 (personal reference capture)', Accept: 'text/html' } });
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get('location');
       if (!location) throw new Error('The website redirected without a destination.');

@@ -1,12 +1,12 @@
-# Taste Atlas
+# TasteMate
 
-A local desktop app for collecting examples of writing and visual design, adding positive and negative annotations, and keeping a portable profile that AI agents can read. Nothing is sent to a Taste Atlas server. A website's public page is fetched when you save a URL without pasted text or choose **Preview capture**; screenshots must be attached or pasted by you.
+A local desktop app for collecting examples of writing and visual design, adding positive and negative annotations, and keeping a portable profile that AI agents can read. Nothing is sent to a TasteMate server. A website's public page is fetched when you save a URL without pasted text or choose **Preview capture**; screenshots must be attached or pasted by you.
 
 ## Install and run
 
 Download the installer for your operating system from the **Desktop installers** workflow's artifacts in [Actions](https://github.com/julio-am/taste-atlas/actions). macOS builds produce a DMG for Apple Silicon and a separate DMG for Intel, Windows produces a Squirrel `Setup.exe`, and Linux produces a `.deb`. The installer contains Electron and Node, so users do not need to install Node separately.
 
-The 0.2.1 Mac artifacts were unsigned, so Gatekeeper may report that Taste Atlas is **damaged and cannot be opened**. New Mac installers are published only after Developer ID signing, Apple notarization, and verification of the app copied out of the DMG. Windows SmartScreen may still warn because the Windows installer is unsigned.
+Older Taste Atlas Mac artifacts were unsigned, so Gatekeeper may report that they are **damaged and cannot be opened**. New Mac installers are published only after Developer ID signing, Apple notarization, and verification of the app copied out of the DMG. Windows SmartScreen may still warn because the Windows installer is unsigned.
 
 For personal testing of an older unsigned build downloaded from this repository's Actions workflow, first check that the ZIP's SHA-256 matches the artifact digest shown by GitHub. Unzip it, open the DMG, and copy `Taste Atlas.app` to Applications. If macOS then blocks this *verified* copy, you can remove quarantine from only this app and launch it:
 
@@ -40,7 +40,7 @@ npm ci
 npm start
 ```
 
-`npm start` opens the native window. `npm run start:web` runs the older browser UI; the `start.command`, `start.bat`, and `start.sh` scripts do the same. The app listens only on your computer. On first run it creates a `Taste Atlas` folder inside your user `Documents` folder. Set `TASTE_ATLAS_DIR` to choose another folder. The desktop window uses a temporary local port; the browser UI defaults to port 4786 and accepts `TASTE_ATLAS_PORT`.
+`npm start` opens the native window. `npm run start:web` runs the older browser UI; the `start.command`, `start.bat`, and `start.sh` scripts do the same. The app listens only on your computer. New profiles live in `Documents/TasteMate`. If you already have a profile in `Documents/Taste Atlas`, TasteMate continues using that folder so existing agent links and annotations still work; it does not move or copy your data. The exact path is shown in **Use with AI agents**. Set `TASTEMATE_DIR` to choose another folder (`TASTE_ATLAS_DIR` remains an alias); the browser UI accepts `TASTEMATE_PORT` or the old `TASTE_ATLAS_PORT` and defaults to port 4786.
 
 To make an installer on the current platform, run `npm run make`. Distributables appear under `out/make/`. On a Mac this packages the app with Forge, creates a ZIP, and uses Apple's `hdiutil` to make the DMG; it does not need a Developer ID certificate for local testing. The repository's workflow builds all platforms on their respective operating systems and requires signing credentials before publishing its Mac artifacts. Run `npm test` for the storage and API integration test. If you previously ran `npm audit fix --force` in a checkout, pull these changes and run `npm ci` to restore the repository's reviewed lockfile.
 
@@ -49,7 +49,7 @@ Add an example with a URL, image, or pasted writing sample. Choose its type, suc
 ## Storage format
 
 ```text
-Taste Atlas/
+TasteMate/
   PROFILE.md         Human-readable index and agent guidance
   AGENTS.md          Short entry point for Codex and other agents
   CLAUDE.md          Imports AGENTS.md for Claude Code
@@ -64,19 +64,19 @@ This is a per-user folder, not a hosted database. Put it in a private sync folde
 
 ## Use with agents
 
-For local Codex or Claude Code, open the profile folder as a project or add a pointer in another project's `AGENTS.md` / `CLAUDE.md`: “Before user-facing writing or design, read `/path/to/Taste Atlas/PROFILE.md` and the relevant examples.” Note that agents need local file access to that path. Web chats do not automatically have that access; upload the exported ZIP or selected files to a ChatGPT or Claude project.
+For local Codex or Claude Code, open the profile folder as a project or add a pointer in another project's `AGENTS.md` / `CLAUDE.md`: “Before user-facing writing or design, read `/path/to/TasteMate/PROFILE.md` and the relevant examples.” Use the actual path displayed by the app if you have an older profile folder. Agents need local file access to that path. Web chats do not automatically have that access; upload the exported ZIP or selected files to a ChatGPT or Claude project.
 
 The installed app includes a read-only MCP server that works while the GUI is closed. Open **Use with AI agents** in the app to copy the exact command, arguments, and any required environment. On macOS after copying the app to Applications, the command is:
 
 ```sh
-"/Applications/Taste Atlas.app/Contents/MacOS/taste-atlas" --mcp
+"/Applications/TasteMate.app/Contents/MacOS/tastemate" --mcp
 ```
 
 For Codex, put this in `~/.codex/config.toml` (replace the command with your installed executable's path):
 
 ```toml
-[mcp_servers.taste_atlas]
-command = "/Applications/Taste Atlas.app/Contents/MacOS/taste-atlas"
+[mcp_servers.tastemate]
+command = "/Applications/TasteMate.app/Contents/MacOS/tastemate"
 args = ["--mcp"]
 ```
 
@@ -85,15 +85,15 @@ For Claude Desktop, add this server to `claude_desktop_config.json` (merge with 
 ```json
 {
   "mcpServers": {
-    "taste-atlas": {
-      "command": "/Applications/Taste Atlas.app/Contents/MacOS/taste-atlas",
+    "tastemate": {
+      "command": "/Applications/TasteMate.app/Contents/MacOS/tastemate",
       "args": ["--mcp"]
     }
   }
 }
 ```
 
-On Windows, use the executable and bundled `resources/app.asar/mcp-server.mjs` path shown by the app, with `ELECTRON_RUN_AS_NODE=1` in the MCP server's environment. The Windows GUI executable alone does not provide a stdio connection. On Linux, use its installed executable with `--mcp`. If you set `TASTE_ATLAS_DIR`, pass that environment variable in the MCP server configuration too. Source checkouts can still run `node mcp-server.mjs`. The tools are `get_taste_profile`, `list_taste_types`, `search_taste_examples` (filterable by type ID), and `get_taste_example` (which can include images). They only read local data. Desktop MCP configuration is separate for each AI app.
+On Windows, use the executable and bundled `resources/app.asar/mcp-server.mjs` path shown by the app, with `ELECTRON_RUN_AS_NODE=1` in the MCP server's environment. The Windows GUI executable alone does not provide a stdio connection. On Linux, use its installed executable with `--mcp`. If you set `TASTEMATE_DIR`, pass that environment variable in the MCP server configuration too. Source checkouts can still run `node mcp-server.mjs`. The tools are `get_taste_profile`, `list_taste_types`, `search_taste_examples` (filterable by type ID), and `get_taste_example` (which can include images). They only read local data. Update an existing Codex or Claude Desktop MCP command to the new TasteMate executable after installing the renamed app. The older app may then be removed without deleting its profile folder.
 
 ## Security and boundaries
 

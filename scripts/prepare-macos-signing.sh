@@ -9,9 +9,9 @@ for name in MACOS_CERTIFICATE_P12_BASE64 MACOS_CERTIFICATE_PASSWORD APPLE_API_KE
   fi
 done
 
-certificate="$RUNNER_TEMP/taste-atlas-developer-id.p12"
+certificate="$RUNNER_TEMP/tastemate-developer-id.p12"
 api_key="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
-keychain="$RUNNER_TEMP/taste-atlas-signing.keychain-db"
+keychain="$RUNNER_TEMP/tastemate-signing.keychain-db"
 keychain_password="$(openssl rand -hex 24)"
 
 umask 077
@@ -32,7 +32,7 @@ if [[ -z "$identity" ]]; then
 fi
 
 {
-  echo "TASTE_ATLAS_SIGN_MACOS=1"
+  echo "TASTEMATE_SIGN_MACOS=1"
   echo "MACOS_SIGN_IDENTITY=$identity"
   echo "MACOS_KEYCHAIN_PATH=$keychain"
   echo "APPLE_API_KEY=$api_key"

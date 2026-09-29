@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101a33">
   <meta name="description" content="A local collection of annotated design and writing references.">
-  <title>Taste Atlas</title>
+  <title>TasteMate</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
   <script type="module" src="/app.js"></script>
@@ -13,7 +13,7 @@
 <body>
   <div class="shell">
     <aside class="rail">
-      <div class="brand"><span class="mark" aria-hidden="true">T<span>·</span></span><div><strong>Taste Atlas</strong><small>Personal reference library</small></div></div>
+      <div class="brand"><span class="mark" aria-hidden="true">T<span>·</span></span><div><strong>TasteMate</strong><small>Personal reference library</small></div></div>
       <nav aria-label="Collection filters" id="filters" class="filters"></nav>
       <div class="rail-bottom">
         <div class="storage-label">YOUR PROFILE FOLDER</div>
@@ -25,7 +25,7 @@
     </aside>
     <main class="main">
       <header class="topbar">
-        <div class="mobile-brand">Taste Atlas</div>
+        <div class="mobile-brand">TasteMate</div>
         <div class="crumb">LIBRARY <span>/</span> <b id="current-filter">All references</b></div>
         <div class="top-actions">
           <button class="button button-quiet" id="manage-types" type="button">Types</button>
@@ -89,7 +89,7 @@
 
   <dialog id="access-dialog" class="modal modal-wide">
     <div class="modal-head"><div><p class="eyebrow">AGENT ACCESS</p><h2>Use your taste profile</h2></div><button class="icon-button" type="button" data-close="access-dialog" aria-label="Close">×</button></div>
-    <div class="access-body"><p>The readable profile is updated every time you save. Point an agent at the folder below and ask it to read <code>PROFILE.md</code> and the examples matching the project type before a writing or design task.</p><div class="copy-row"><code id="access-path"></code><button class="button button-secondary" id="copy-path" type="button">Copy path</button></div><div id="native-access" hidden><p>For desktop MCP clients, use these settings for a server named <code>taste-atlas</code>. The GUI does not need to be open.</p><div class="copy-row"><code id="native-mcp-command"></code><button class="button button-secondary" id="copy-mcp-command" type="button">Copy settings</button></div></div><div class="access-columns"><div><h3>ChatGPT / Codex</h3><p>Open this folder as a local project, or place it alongside a project and link it from that project’s <code>AGENTS.md</code>. The local MCP server also works with desktop Codex.</p></div><div><h3>Claude</h3><p>Open the folder in Claude Code or reference it from <code>CLAUDE.md</code>. Claude Desktop can use the included local MCP server.</p></div></div><p class="muted">Web chats need the exported ZIP or its relevant files uploaded to a project. Local data is never uploaded by this app.</p></div>
+    <div class="access-body"><p>The readable profile is updated every time you save. Point an agent at the folder below and ask it to read <code>PROFILE.md</code> and the examples matching the project type before a writing or design task.</p><div class="copy-row"><code id="access-path"></code><button class="button button-secondary" id="copy-path" type="button">Copy path</button></div><div id="native-access" hidden><p>For desktop MCP clients, use these settings for a server named <code>tastemate</code>. The GUI does not need to be open.</p><div class="copy-row"><code id="native-mcp-command"></code><button class="button button-secondary" id="copy-mcp-command" type="button">Copy settings</button></div></div><div class="access-columns"><div><h3>ChatGPT / Codex</h3><p>Open this folder as a local project, or place it alongside a project and link it from that project’s <code>AGENTS.md</code>. The local MCP server also works with desktop Codex.</p></div><div><h3>Claude</h3><p>Open the folder in Claude Code or reference it from <code>CLAUDE.md</code>. Claude Desktop can use the included local MCP server.</p></div></div><p class="muted">Web chats need the exported ZIP or its relevant files uploaded to a project. Local data is never uploaded by this app.</p></div>
     <div class="modal-actions"><button class="button button-primary" type="button" data-close="access-dialog">Done</button></div>
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

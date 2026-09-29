@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -19,14 +19,14 @@ function waitForLine(child, predicate, timeout = 10000) {
 const png = Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000b49444154789c636000020000050001a5f645400000000049454e44ae426082', 'hex').toString('base64');
 
 test('local workflow saves annotations, images, Markdown and a complete ZIP', async () => {
-  const folder = await mkdtemp(path.join(tmpdir(), 'taste-atlas-test-'));
+  const folder = await mkdtemp(path.join(tmpdir(), 'tastemate-test-'));
   const legacyId = randomUUID();
   await mkdir(path.join(folder, 'examples'));
   await writeFile(path.join(folder, 'examples', `${legacyId}.json`), JSON.stringify({ id: legacyId, title: 'Old app reference', category: 'app', url: 'https://example.org/', tags: [], context: '', sourceText: '', capturedAt: '', assets: [], annotations: [{ id: randomUUID(), polarity: 'avoid', note: 'A legacy note', strength: 'strong', appliesTo: '', guidance: '', quote: '', anchor: null }], createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' }));
-  const env = { TASTE_ATLAS_DIR: folder, TASTE_ATLAS_PORT: '0', TASTE_ATLAS_NO_BROWSER: '1' };
+  const env = { TASTEMATE_DIR: folder, TASTEMATE_PORT: '0', TASTEMATE_NO_BROWSER: '1' };
   const server = launch(process.execPath, ['server.mjs'], env);
   try {
-    const ready = await waitForLine(server, line => line.startsWith('Taste Atlas is ready:'));
+    const ready = await waitForLine(server, line => line.startsWith('TasteMate is ready:'));
     const origin = new URL(ready.slice(ready.indexOf('http'))).origin;
     const call = async (route, method, payload) => {
       const response = await fetch(origin + route, { method, headers: payload ? { 'Content-Type': 'application/json' } : {}, body: payload ? JSON.stringify(payload) : undefined });
@@ -74,6 +74,7 @@ test('local workflow saves annotations, images, Markdown and a complete ZIP', as
     const bytes = Buffer.from(await archive.arrayBuffer());
     assert.equal(bytes.readUInt32LE(0), 0x04034b50);
     assert.ok(bytes.includes(Buffer.from(`examples/${id}.md`)));
+    assert.ok(bytes.includes(Buffer.from(`tastemate-profile/examples/${id}.md`)));
     assert.ok(bytes.includes(Buffer.from('assets/')));
     assert.ok(bytes.includes(Buffer.from('types.json')));
     const blocked = await call('/api/inspect', 'POST', { url: 'http://127.0.0.1:1/' });
@@ -92,4 +93,31 @@ test('local workflow saves annotations, images, Markdown and a complete ZIP', as
     result = await call(`/api/types/${customTypeId}`, 'DELETE');
     assert.equal(result.status, 200);
   } finally { server.kill(); await rm(folder, { recursive: true, force: true }); }
+});
+
+test('renamed app finds an existing profile without moving it', { skip: process.platform === 'win32' }, async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'tastemate-home-'));
+  const docs = path.join(home, 'Documents');
+  const oldFolder = path.join(docs, 'Taste Atlas');
+  const newFolder = path.join(docs, 'TasteMate');
+  const env = { ...process.env, HOME: home };
+  delete env.TASTEMATE_DIR;
+  delete env.TASTE_ATLAS_DIR;
+  const chosenFolder = () => execFileSync(process.execPath,
+    ['--input-type=module', '-e', 'import { dataDir } from "./store.mjs"; process.stdout.write(dataDir)'],
+    { cwd: path.resolve('.'), env, encoding: 'utf8' });
+  try {
+    assert.equal(chosenFolder(), newFolder);
+    await mkdir(oldFolder, { recursive: true });
+    await writeFile(path.join(oldFolder, 'types.json'), '{"schemaVersion":1,"types":[]}');
+    assert.equal(chosenFolder(), oldFolder);
+    await mkdir(newFolder);
+    await writeFile(path.join(newFolder, 'types.json'), '{"schemaVersion":1,"types":[]}');
+    assert.equal(chosenFolder(), newFolder);
+    env.TASTEMATE_DIR = oldFolder;
+    assert.equal(chosenFolder(), oldFolder);
+    delete env.TASTEMATE_DIR;
+    env.TASTE_ATLAS_DIR = oldFolder;
+    assert.equal(chosenFolder(), oldFolder);
+  } finally { await rm(home, { recursive: true, force: true }); }
 });

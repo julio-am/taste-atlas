@@ -1,9 +1,17 @@
-import { promises as fs } from 'node:fs';
+import { existsSync, promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { randomUUID } from 'node:crypto';
 
-export const dataDir = path.resolve(process.env.TASTE_ATLAS_DIR || path.join(os.homedir(), 'Documents', 'Taste Atlas'));
+const documentsDir = path.join(os.homedir(), 'Documents');
+const defaultDir = path.join(documentsDir, 'TasteMate');
+const legacyDir = path.join(documentsDir, 'Taste Atlas');
+// Keep existing profiles at their original path so AGENTS.md, Claude, and MCP
+// references continue to work. Fresh installations use the new brand's folder.
+const legacyProfile = ['types.json', 'manifest.json', 'examples'].some(name => existsSync(path.join(legacyDir, name)));
+const newProfile = ['types.json', 'manifest.json', 'examples'].some(name => existsSync(path.join(defaultDir, name)));
+export const dataDir = path.resolve(process.env.TASTEMATE_DIR || process.env.TASTE_ATLAS_DIR ||
+  (legacyProfile && !newProfile ? legacyDir : defaultDir));
 const examplesDir = path.join(dataDir, 'examples');
 const assetsDir = path.join(dataDir, 'assets');
 const typesFile = path.join(dataDir, 'types.json');
