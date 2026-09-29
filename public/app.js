@@ -1,4 +1,4 @@
-const state = { records: [], types: [], selectedId: null, filter: 'all', query: '', dataDir: '', mcpExecutable: '', editingId: null, typeEditingId: null, anchor: null };
+const state = { records: [], types: [], selectedId: null, filter: 'all', query: '', dataDir: '', mcpSettings: null, editingId: null, typeEditingId: null, anchor: null };
 const $ = selector => document.querySelector(selector);
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const safeUrl = value => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } };
@@ -21,7 +21,7 @@ async function refresh(preferId) {
   state.records = data.records;
   state.types = data.types;
   state.dataDir = data.dataDir;
-  state.mcpExecutable = data.mcpExecutable || '';
+  state.mcpSettings = data.mcpSettings;
   if (state.filter !== 'all' && !typeFor(state.filter)) state.filter = 'all';
   const visible = visibleRecords();
   state.selectedId = visible.some(r => r.id === (preferId || state.selectedId)) ? (preferId || state.selectedId) : visible[0]?.id || null;
@@ -71,8 +71,8 @@ function render() {
   renderFilters(); renderCards(); renderDetail();
   $('#storage-path').textContent = state.dataDir;
   $('#access-path').textContent = state.dataDir;
-  $('#native-access').hidden = !state.mcpExecutable;
-  $('#native-mcp-command').textContent = state.mcpExecutable ? `"${state.mcpExecutable}" --mcp` : '';
+  $('#native-access').hidden = !state.mcpSettings;
+  $('#native-mcp-command').textContent = state.mcpSettings ? JSON.stringify(state.mcpSettings, null, 2) : '';
 }
 function showDialog(id) { document.getElementById(id).showModal(); }
 function closeDialog(id) { document.getElementById(id).close(); }
@@ -177,7 +177,7 @@ $('#export-button').addEventListener('click', () => { window.location.href = '/a
 $('#open-folder').addEventListener('click', async () => { try { await mutation('/api/open-folder', 'POST'); } catch (error) { toast(error.message); } });
 $('#agent-access').addEventListener('click', () => showDialog('access-dialog'));
 $('#copy-path').addEventListener('click', async () => { try { await navigator.clipboard.writeText(state.dataDir); toast('Folder path copied.'); } catch { toast('Select and copy the path above.'); } });
-$('#copy-mcp-command').addEventListener('click', async () => { try { await navigator.clipboard.writeText(`"${state.mcpExecutable}" --mcp`); toast('MCP command copied.'); } catch { toast('Select and copy the command above.'); } });
+$('#copy-mcp-command').addEventListener('click', async () => { try { await navigator.clipboard.writeText(JSON.stringify(state.mcpSettings, null, 2)); toast('MCP settings copied.'); } catch { toast('Select and copy the settings above.'); } });
 document.body.addEventListener('click', event => {
   const close = event.target.closest('[data-close]'); if (close) closeDialog(close.dataset.close);
   const newButton = event.target.closest('[data-action="new"]'); if (newButton) openExample();

@@ -1,5 +1,6 @@
 // The installed executable also serves read-only MCP over stdio when launched with --mcp.
 // This keeps desktop AI integration independent of the GUI and of a separate Node installation.
+import { fileURLToPath } from 'node:url';
 if (process.argv.includes('--mcp')) {
   await import('../mcp-server.mjs');
   process.exit(0);
@@ -27,7 +28,10 @@ if (process.argv.includes('--mcp')) {
 
     await app.whenReady();
     const { startServer } = await import('../server.mjs');
-    localServer = await startServer({ port: 0, launchBrowser: false, mcpExecutable: process.execPath });
+    const mcpSettings = process.platform === 'win32'
+      ? { command: process.execPath, args: [fileURLToPath(new URL('../mcp-server.mjs', import.meta.url))], env: { ELECTRON_RUN_AS_NODE: '1' } }
+      : { command: process.execPath, args: ['--mcp'] };
+    localServer = await startServer({ port: 0, launchBrowser: false, mcpSettings });
     const localOrigin = new URL(localServer.url).origin;
 
     function createWindow() {

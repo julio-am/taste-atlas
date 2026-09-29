@@ -14,8 +14,12 @@ const executable = process.platform === 'darwin'
   : path.join(root, process.platform === 'win32' ? 'taste-atlas.exe' : 'taste-atlas');
 const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'taste-atlas-package-'));
 // The unpackaged Linux build lacks the root-owned SUID helper that the .deb installs.
-const args = process.platform === 'linux' ? ['--no-sandbox', '--mcp'] : ['--mcp'];
-const child = spawn(executable, args, { env: { ...process.env, TASTE_ATLAS_DIR: dataDir }, stdio: ['pipe', 'pipe', 'pipe'] });
+const args = process.platform === 'win32'
+  ? [path.join(root, 'resources', 'app.asar', 'mcp-server.mjs')]
+  : process.platform === 'linux' ? ['--no-sandbox', '--mcp'] : ['--mcp'];
+const env = { ...process.env, TASTE_ATLAS_DIR: dataDir };
+if (process.platform === 'win32') env.ELECTRON_RUN_AS_NODE = '1';
+const child = spawn(executable, args, { env, stdio: ['pipe', 'pipe', 'pipe'] });
 let errors = '';
 child.stderr.on('data', chunk => { errors += chunk; });
 

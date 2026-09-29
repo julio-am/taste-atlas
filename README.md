@@ -41,7 +41,7 @@ This is a per-user folder, not a hosted database. Put it in a private sync folde
 
 For local Codex or Claude Code, open the profile folder as a project or add a pointer in another project's `AGENTS.md` / `CLAUDE.md`: “Before user-facing writing or design, read `/path/to/Taste Atlas/PROFILE.md` and the relevant examples.” Note that agents need local file access to that path. Web chats do not automatically have that access; upload the exported ZIP or selected files to a ChatGPT or Claude project.
 
-The installed executable has a read-only MCP mode that works while the GUI is closed. Open **Use with AI agents** in the app to copy the exact executable path. For example, on macOS after copying the app to Applications:
+The installed app includes a read-only MCP server that works while the GUI is closed. Open **Use with AI agents** in the app to copy the exact command, arguments, and any required environment. On macOS after copying the app to Applications, the command is:
 
 ```sh
 "/Applications/Taste Atlas.app/Contents/MacOS/taste-atlas" --mcp
@@ -68,7 +68,7 @@ For Claude Desktop, add this server to `claude_desktop_config.json` (merge with 
 }
 ```
 
-Use the installed executable path shown in the app for Windows or Linux. If you set `TASTE_ATLAS_DIR`, pass that environment variable in the MCP server configuration too. Source checkouts can still run `node mcp-server.mjs`. The tools are `get_taste_profile`, `list_taste_types`, `search_taste_examples` (filterable by type ID), and `get_taste_example` (which can include images). They only read local data. Desktop MCP configuration is separate for each AI app.
+On Windows, use the executable and bundled `resources/app.asar/mcp-server.mjs` path shown by the app, with `ELECTRON_RUN_AS_NODE=1` in the MCP server's environment. The Windows GUI executable alone does not provide a stdio connection. On Linux, use its installed executable with `--mcp`. If you set `TASTE_ATLAS_DIR`, pass that environment variable in the MCP server configuration too. Source checkouts can still run `node mcp-server.mjs`. The tools are `get_taste_profile`, `list_taste_types`, `search_taste_examples` (filterable by type ID), and `get_taste_example` (which can include images). They only read local data. Desktop MCP configuration is separate for each AI app.
 
 ## Security and boundaries
 
