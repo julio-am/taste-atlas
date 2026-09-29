@@ -12,7 +12,8 @@ const info = path.join(app, 'Contents', 'Info.plist');
 const minimum = execFileSync('plutil', ['-extract', 'LSMinimumSystemVersion', 'raw', '-o', '-', info], { encoding: 'utf8' }).trim();
 if (minimum !== '13.0.0') throw new Error(`Unexpected macOS minimum: ${minimum}`);
 const architectures = execFileSync('lipo', ['-archs', executable], { encoding: 'utf8' }).trim().split(/\s+/);
-if (!architectures.includes(process.arch)) throw new Error(`No ${process.arch} slice in packaged app: ${architectures}`);
+const expectedArch = process.arch === 'x64' ? 'x86_64' : process.arch;
+if (!architectures.includes(expectedArch)) throw new Error(`No ${expectedArch} slice in packaged app: ${architectures}`);
 console.log(`Mac bundle: minimum macOS ${minimum}, architectures ${architectures.join(', ')}`);
 
 const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'taste-atlas-gui-'));

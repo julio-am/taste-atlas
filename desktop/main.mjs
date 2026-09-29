@@ -86,27 +86,29 @@ if (process.argv.includes('--mcp')) {
     app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
     app.on('before-quit', () => { void localServer?.close().catch(error => console.error(error)); });
 
-    app.on('ready', () => trace('ready event'));
+    // Electron waits for the ESM entry module to finish before emitting ready.
+    // Awaiting app.whenReady() at top level can deadlock the Mac main process.
     trace('waiting for ready');
-    await app.whenReady();
-    trace('app ready');
-    await createWindow();
-    trace('status window loaded');
-    app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) void createWindow(); });
+    void app.whenReady().then(async () => {
+      trace('app ready');
+      await createWindow();
+      trace('status window loaded');
+      app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) void createWindow(); });
 
-    try {
-      const { startServer } = await import('../server.mjs');
-      const mcpSettings = process.platform === 'win32'
-        ? { command: process.execPath, args: [fileURLToPath(new URL('../mcp-server.mjs', import.meta.url))], env: { ELECTRON_RUN_AS_NODE: '1' } }
-        : { command: process.execPath, args: ['--mcp'] };
-      localServer = await startServer({ port: 0, launchBrowser: false, mcpSettings });
-      trace('local server started');
-      localOrigin = new URL(localServer.url).origin;
-      if (window && !window.isDestroyed()) await window.loadURL(localServer.url);
-      trace('library window loaded');
-      console.log('Taste Atlas window loaded.');
-    } catch (error) {
-      showStartupError(error);
-    }
+      try {
+        const { startServer } = await import('../server.mjs');
+        const mcpSettings = process.platform === 'win32'
+          ? { command: process.execPath, args: [fileURLToPath(new URL('../mcp-server.mjs', import.meta.url))], env: { ELECTRON_RUN_AS_NODE: '1' } }
+          : { command: process.execPath, args: ['--mcp'] };
+        localServer = await startServer({ port: 0, launchBrowser: false, mcpSettings });
+        trace('local server started');
+        localOrigin = new URL(localServer.url).origin;
+        if (window && !window.isDestroyed()) await window.loadURL(localServer.url);
+        trace('library window loaded');
+        console.log('Taste Atlas window loaded.');
+      } catch (error) {
+        showStartupError(error);
+      }
+    }).catch(showStartupError);
   }
 }
