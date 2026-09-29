@@ -16,9 +16,10 @@ if (!architectures.includes(process.arch)) throw new Error(`No ${process.arch} s
 console.log(`Mac bundle: minimum macOS ${minimum}, architectures ${architectures.join(', ')}`);
 
 const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'taste-atlas-gui-'));
+const traceFile = path.join(dataDir, 'startup.log');
 const port = 18000 + Math.floor(Math.random() * 20000);
 const child = spawn(executable, [`--remote-debugging-port=${port}`], {
-  env: { ...process.env, TASTE_ATLAS_DIR: dataDir }, stdio: ['ignore', 'pipe', 'pipe'],
+  env: { ...process.env, TASTE_ATLAS_DIR: dataDir, TASTE_ATLAS_DIAGNOSTICS: traceFile }, stdio: ['ignore', 'pipe', 'pipe'],
 });
 let output = '';
 let exited = false;
@@ -68,7 +69,10 @@ try {
     } catch (error) { last = error.message; }
     await new Promise(resolve => setTimeout(resolve, 500));
   }
-  if (Date.now() >= deadline) throw new Error(`Mac GUI did not initialize. Last observation: ${last}\n${output}`);
+  if (Date.now() >= deadline) {
+    const trace = await fs.readFile(traceFile, 'utf8').catch(() => '(no startup trace)');
+    throw new Error(`Mac GUI did not initialize. Last observation: ${last}\nStartup trace:\n${trace}\n${output}`);
+  }
 } finally {
   child.kill();
   await fs.rm(dataDir, { recursive: true, force: true });

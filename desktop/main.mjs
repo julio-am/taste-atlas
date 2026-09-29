@@ -1,16 +1,29 @@
 // The installed executable also serves read-only MCP over stdio when launched with --mcp.
 import { fileURLToPath } from 'node:url';
+import { appendFileSync } from 'node:fs';
+
+function trace(stage) {
+  if (process.env.TASTE_ATLAS_DIAGNOSTICS) {
+    try { appendFileSync(process.env.TASTE_ATLAS_DIAGNOSTICS, `${new Date().toISOString()} ${stage}\n`); }
+    catch { /* Diagnostics must never block startup. */ }
+  }
+}
+trace('main entered');
 
 if (process.argv.includes('--mcp')) {
   await import('../mcp-server.mjs');
   process.exit(0);
 } else {
   const { app, BrowserWindow, shell } = await import('electron');
+  trace('electron imported');
   const { default: squirrelStartup } = await import('electron-squirrel-startup');
+  trace('squirrel helper imported');
 
   if (squirrelStartup || !app.requestSingleInstanceLock()) {
+    trace('launch declined');
     app.quit();
   } else {
+    trace('single instance acquired');
     let window = null;
     let localServer = null;
     let localOrigin = null;
@@ -73,8 +86,12 @@ if (process.argv.includes('--mcp')) {
     app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
     app.on('before-quit', () => { void localServer?.close().catch(error => console.error(error)); });
 
+    app.on('ready', () => trace('ready event'));
+    trace('waiting for ready');
     await app.whenReady();
+    trace('app ready');
     await createWindow();
+    trace('status window loaded');
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) void createWindow(); });
 
     try {
@@ -83,8 +100,10 @@ if (process.argv.includes('--mcp')) {
         ? { command: process.execPath, args: [fileURLToPath(new URL('../mcp-server.mjs', import.meta.url))], env: { ELECTRON_RUN_AS_NODE: '1' } }
         : { command: process.execPath, args: ['--mcp'] };
       localServer = await startServer({ port: 0, launchBrowser: false, mcpSettings });
+      trace('local server started');
       localOrigin = new URL(localServer.url).origin;
       if (window && !window.isDestroyed()) await window.loadURL(localServer.url);
+      trace('library window loaded');
       console.log('Taste Atlas window loaded.');
     } catch (error) {
       showStartupError(error);
