@@ -1,0 +1,48 @@
+name: Desktop installers
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macOS Apple Silicon
+            runner: macos-15
+            artifact: macos-arm64
+          - label: macOS Intel
+            runner: macos-15-intel
+            artifact: macos-x64
+          - label: Windows
+            runner: windows-2025
+            artifact: windows-x64
+          - label: Linux
+            runner: ubuntu-24.04
+            artifact: linux-x64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install Linux package tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+      - run: npm ci
+      - run: npm test
+      - run: npm run make
+      - uses: actions/upload-artifact@v4
+        with:
+          name: taste-atlas-${{ matrix.artifact }}
+          path: out/make/**
+          if-no-files-found: error
+          retention-days: 30

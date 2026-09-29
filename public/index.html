@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101a33">
+  <meta name="description" content="A local collection of annotated design and writing references.">
+  <title>Taste Atlas</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <div class="brand"><span class="mark" aria-hidden="true">T<span>·</span></span><div><strong>Taste Atlas</strong><small>Personal reference library</small></div></div>
+      <nav aria-label="Collection filters" id="filters" class="filters"></nav>
+      <div class="rail-bottom">
+        <div class="storage-label">YOUR PROFILE FOLDER</div>
+        <div class="storage-path" id="storage-path" title="Local data folder"></div>
+        <button class="rail-link" id="open-folder" type="button">Open folder</button>
+        <button class="rail-link" id="agent-access" type="button">Use with AI agents</button>
+        <div class="local-note"><span class="local-dot"></span> Stored on this computer</div>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="mobile-brand">Taste Atlas</div>
+        <div class="crumb">LIBRARY <span>/</span> <b id="current-filter">All references</b></div>
+        <div class="top-actions">
+          <button class="button button-quiet" id="manage-types" type="button">Types</button>
+          <button class="button button-quiet" id="export-button" type="button" title="Download a portable copy">Export profile</button>
+          <button class="button button-primary" id="new-button" type="button"><span class="button-plus" aria-hidden="true">+</span> Add example</button>
+        </div>
+      </header>
+      <div class="workspace">
+        <section class="browser" aria-label="Examples">
+          <div class="browser-head">
+            <div><p class="eyebrow">YOUR COLLECTION</p><h1 id="collection-title">All references</h1><p class="count" id="collection-count">0 examples</p></div>
+            <label class="search-wrap"><span class="visually-hidden">Search examples</span><input id="search" type="search" placeholder="Search references" autocomplete="off"></label>
+          </div>
+          <div class="cards" id="cards" aria-live="polite"></div>
+        </section>
+        <section class="detail" id="detail" aria-label="Example details"></section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="example-dialog" class="modal modal-wide">
+    <form id="example-form" method="dialog">
+      <div class="modal-head"><div><p class="eyebrow">REFERENCE</p><h2 id="example-dialog-title">Add an example</h2></div><button class="icon-button" type="button" data-close="example-dialog" aria-label="Close">×</button></div>
+      <div class="form-grid">
+        <label class="field field-span">Title <input name="title" required maxlength="180" placeholder="e.g. A portfolio with restrained typography"></label>
+        <label class="field">Type <select name="typeId" required></select><small id="example-type-description">Choose the kind of work this example informs.</small></label>
+        <label class="field">Tags <input name="tags" placeholder="portfolio, navigation, typography"></label>
+        <div class="field field-span"><label for="url">Website link (optional)</label><div class="input-action"><input name="url" id="url" type="url" placeholder="https://example.com"><button id="inspect-button" class="button button-secondary" type="button">Preview capture</button></div><small id="inspect-status">Page text is captured when you save. Attach a screenshot to preserve the visual design.</small></div>
+        <label class="field field-span">Why this example matters <textarea name="context" rows="2" placeholder="Where would you want an agent to use this reference?"></textarea></label>
+        <label class="field field-span">Writing sample or captured page text <textarea name="sourceText" rows="4" placeholder="Paste a passage here, or capture the text from a website."></textarea></label>
+        <label class="field field-span upload-field"><span>Images and screenshots</span><input id="new-images" name="images" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple><small>PNG, JPEG, WebP, or GIF · up to 12 MB per image. You can add more later.</small></label>
+        <div class="quick-notes field-span"><p class="eyebrow">QUICK ANNOTATIONS</p><div class="quick-grid"><label class="field">What works <textarea name="positive" rows="3" placeholder="The title is precise and the navigation is quiet."></textarea></label><label class="field">What to avoid <textarea name="negative" rows="3" placeholder="The animated background distracts from the work."></textarea></label></div><small>You can add detailed notes and pin them to images after saving.</small></div>
+      </div>
+      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="example-dialog">Cancel</button><button class="button button-primary" id="save-example" type="submit">Save example</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="annotation-dialog" class="modal">
+    <form id="annotation-form" method="dialog">
+      <div class="modal-head"><div><p class="eyebrow">ANNOTATION</p><h2>Add a preference</h2></div><button class="icon-button" type="button" data-close="annotation-dialog" aria-label="Close">×</button></div>
+      <div class="polarity-choice" role="radiogroup" aria-label="Preference"><label><input type="radio" name="polarity" value="prefer" checked><span class="good">+ Prefer</span></label><label><input type="radio" name="polarity" value="avoid"><span class="bad">− Avoid</span></label></div>
+      <p id="anchor-label" class="anchor-label" hidden></p>
+      <label class="field">What do you notice? <textarea name="note" rows="3" required maxlength="2000" placeholder="Describe the specific pattern, not just whether you like it."></textarea></label>
+      <label class="field">Exact phrase or detail (optional) <input name="quote" maxlength="500" placeholder="Paste the wording you want to preserve or avoid"></label>
+      <label class="field">What should an agent do? <textarea name="guidance" rows="2" maxlength="2000" placeholder="Use concise labels and leave room around important content."></textarea></label>
+      <div class="form-grid"><label class="field">Scope <select name="scope"><option value="type">This type only</option><option value="all">All types</option></select></label><label class="field">Strength <select name="strength"><option value="contextual">Contextual example</option><option value="strong">Strong preference</option></select></label><label class="field field-span">Applies to (optional) <input name="appliesTo" maxlength="250" placeholder="e.g. Personal sites, when the content is long"></label></div>
+      <div class="modal-actions"><button class="button button-quiet" type="button" data-close="annotation-dialog">Cancel</button><button class="button button-primary" type="submit">Save annotation</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="types-dialog" class="modal">
+    <div class="modal-head"><div><p class="eyebrow">EXAMPLE TYPES</p><h2>Define what good looks like</h2></div><button class="icon-button" type="button" data-close="types-dialog" aria-label="Close">×</button></div>
+    <div class="types-body"><p>Keep examples for different kinds of work separate. Add a short guide for a type if you have a rule that applies across its examples.</p><div id="type-list" class="type-list"></div></div>
+    <form id="type-form" method="dialog">
+      <div class="type-form-heading"><h3 id="type-form-title">Add a type</h3><button id="cancel-type-edit" class="text-button" type="button" hidden>Cancel edit</button></div>
+      <label class="field">Name <input name="label" required maxlength="60" placeholder="e.g. Desktop utility"></label>
+      <label class="field">What good looks like for this type (optional) <textarea name="description" rows="3" maxlength="2000" placeholder="Your own standards for this kind of work"></textarea></label>
+      <div class="modal-actions"><button class="button button-primary" id="save-type" type="submit">Add type</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="access-dialog" class="modal modal-wide">
+    <div class="modal-head"><div><p class="eyebrow">AGENT ACCESS</p><h2>Use your taste profile</h2></div><button class="icon-button" type="button" data-close="access-dialog" aria-label="Close">×</button></div>
+    <div class="access-body"><p>The readable profile is updated every time you save. Point an agent at the folder below and ask it to read <code>PROFILE.md</code> and the examples matching the project type before a writing or design task.</p><div class="copy-row"><code id="access-path"></code><button class="button button-secondary" id="copy-path" type="button">Copy path</button></div><div id="native-access" hidden><p>For desktop MCP clients, set the command to this installed executable and pass <code>--mcp</code> as its argument. The GUI does not need to be open.</p><div class="copy-row"><code id="native-mcp-command"></code><button class="button button-secondary" id="copy-mcp-command" type="button">Copy command</button></div></div><div class="access-columns"><div><h3>ChatGPT / Codex</h3><p>Open this folder as a local project, or place it alongside a project and link it from that project’s <code>AGENTS.md</code>. The local MCP server also works with desktop Codex.</p></div><div><h3>Claude</h3><p>Open the folder in Claude Code or reference it from <code>CLAUDE.md</code>. Claude Desktop can use the included local MCP server.</p></div></div><p class="muted">Web chats need the exported ZIP or its relevant files uploaded to a project. Local data is never uploaded by this app.</p></div>
+    <div class="modal-actions"><button class="button button-primary" type="button" data-close="access-dialog">Done</button></div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
