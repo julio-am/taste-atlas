@@ -41,6 +41,9 @@ jobs:
       - run: npm test
       - run: npm run make
       - run: node scripts/smoke-packaged.mjs
+      - name: Launch packaged Mac window
+        if: runner.os == 'macOS'
+        run: node scripts/smoke-gui.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: taste-atlas-${{ matrix.artifact }}

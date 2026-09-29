@@ -5,6 +5,8 @@ module.exports = {
     name: 'Taste Atlas',
     executableName: 'taste-atlas',
     appBundleId: 'com.julioam.tasteatlas',
+    // Electron 44 requires macOS 13+. This is a minimum; it does not cap future macOS releases.
+    extendInfo: { LSMinimumSystemVersion: '13.0.0' },
     asar: true,
     icon: path.join(__dirname, 'assets', 'icon'),
     ignore: [/^\/out(?:\/|$)/, /^\/test(?:\/|$)/, /^\/\.github(?:\/|$)/, /^\/scripts(?:\/|$)/],
