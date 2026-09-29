@@ -27,7 +27,7 @@ module.exports = {
     } : {}),
   },
   makers: [
-    { name: '@electron-forge/maker-dmg', platforms: ['darwin'] },
+    { name: '@electron-forge/maker-zip', platforms: ['darwin'] },
     { name: '@electron-forge/maker-squirrel', platforms: ['win32'], config: { name: 'TasteAtlas', setupIcon: path.join(__dirname, 'assets', 'icon.ico') } },
     { name: '@electron-forge/maker-deb', platforms: ['linux'], config: { options: { maintainer: 'Julio Medina', icon: path.join(__dirname, 'assets', 'icon.png'), categories: ['Utility'] } } },
   ],
