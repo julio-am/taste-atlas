@@ -27,6 +27,20 @@ async function refresh(preferId) {
   state.selectedId = visible.some(r => r.id === (preferId || state.selectedId)) ? (preferId || state.selectedId) : visible[0]?.id || null;
   render();
 }
+// Browser captures appear without a manual reload. Do not interrupt an open
+// editor, keyboard focus, or a selection in the reference being read.
+let checkingExternal = false;
+async function refreshExternal() {
+  if (document.hidden || checkingExternal || document.querySelector('dialog[open]') || document.activeElement?.matches('input,textarea,select') || window.getSelection()?.toString()) return;
+  checkingExternal = true;
+  try {
+    const data = await request('/api/state');
+    if (JSON.stringify([data.records, data.types]) !== JSON.stringify([state.records, state.types])) await refresh(state.selectedId);
+  } catch { /* The next focus or poll retries a transient connection failure. */ }
+  finally { checkingExternal = false; }
+}
+window.addEventListener('focus', refreshExternal);
+setInterval(refreshExternal, 5000);
 function visibleRecords() {
   const query = state.query.toLowerCase();
   return state.records.filter(record => (state.filter === 'all' || record.typeId === state.filter) &&
@@ -176,6 +190,33 @@ $('#type-form').addEventListener('submit', async event => {
 $('#export-button').addEventListener('click', () => { window.location.href = '/api/export'; toast('Downloading your complete profile.'); });
 $('#open-folder').addEventListener('click', async () => { try { await mutation('/api/open-folder', 'POST'); } catch (error) { toast(error.message); } });
 $('#agent-access').addEventListener('click', () => showDialog('access-dialog'));
+let bridgeState;
+function renderBridge(data) {
+  bridgeState = data;
+  $('#bridge-setup').hidden = !data.available;
+  $('#bridge-status').textContent = !data.available ? 'Open the installed TasteMate desktop app to connect your browser.' : data.browsers.length ? `Connected for ${data.browsers.map(name => name === 'edge' ? 'Edge' : 'Chrome').join(' and ')} · extension ${data.version}` : 'Connect once, then load the extension in your browser.';
+  $('#bridge-instructions').hidden = !data.browsers?.length;
+  $('#bridge-folder').textContent = data.extensionDir || '';
+  $('#bridge-id').textContent = data.extensionId || '';
+}
+$('#browser-extension').addEventListener('click', async () => {
+  showDialog('browser-dialog');
+  try { renderBridge(await request('/api/browser-bridge')); }
+  catch (error) { $('#bridge-status').textContent = error.message; }
+});
+$('#bridge-browser').addEventListener('change', () => {
+  const edge = $('#bridge-browser').value === 'edge';
+  $('#bridge-connect').textContent = `Connect ${edge ? 'Edge' : 'Chrome'}`;
+  $('#bridge-extensions-page').textContent = edge ? 'edge://extensions' : 'chrome://extensions';
+});
+$('#bridge-connect').addEventListener('click', async () => {
+  $('#bridge-connect').disabled = true;
+  try { renderBridge(await mutation('/api/browser-bridge/connect', 'POST', { browser: $('#bridge-browser').value })); }
+  catch (error) { $('#bridge-status').textContent = error.message; }
+  finally { $('#bridge-connect').disabled = false; }
+});
+$('#bridge-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(bridgeState.extensionDir); toast('Extension folder copied.'); } catch { toast('Select and copy the folder path.'); } });
+$('#bridge-open').addEventListener('click', async () => { try { await mutation('/api/browser-bridge/open-folder', 'POST'); } catch (error) { toast(error.message); } });
 $('#copy-path').addEventListener('click', async () => { try { await navigator.clipboard.writeText(state.dataDir); toast('Folder path copied.'); } catch { toast('Select and copy the path above.'); } });
 $('#copy-mcp-command').addEventListener('click', async () => { try { await navigator.clipboard.writeText(JSON.stringify(state.mcpSettings, null, 2)); toast('MCP settings copied.'); } catch { toast('Select and copy the settings above.'); } });
 document.body.addEventListener('click', event => {
@@ -272,4 +313,4 @@ document.addEventListener('paste', async event => {
   const files = Array.from(event.clipboardData?.files || []).filter(file => file.type.startsWith('image/'));
   if (files.length) { event.preventDefault(); try { await uploadFiles(files); } catch (error) { toast(error.message); } }
 });
-refresh().catch(error => { $('#cards').innerHTML = `<div class="cards-empty"><strong>Could not load your profile</strong><p>${escapeHtml(error.message)}</p></div>`; toast(error.message); });
+refresh(new URLSearchParams(location.search).get('example')).catch(error => { $('#cards').innerHTML = `<div class="cards-empty"><strong>Could not load your profile</strong><p>${escapeHtml(error.message)}</p></div>`; toast(error.message); });

@@ -39,13 +39,22 @@ function openBrowser(url) {
   const command = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer.exe' : 'xdg-open';
   execFile(command, [url], { windowsHide: true }, error => { if (error) console.log(`Open ${url} in your browser.`); });
 }
-export async function startServer({ port = Number(process.env.TASTEMATE_PORT || process.env.TASTE_ATLAS_PORT || 4786), launchBrowser = true, mcpSettings = null } = {}) {
+export async function startServer({ port = Number(process.env.TASTEMATE_PORT || process.env.TASTE_ATLAS_PORT || 4786), launchBrowser = true, mcpSettings = null, browserBridge = null } = {}) {
 await ensureStore();
 const server = http.createServer(async (req, res) => {
   if (!checkLocal(req)) { json(res, { error: 'Local requests only.' }, 403); return; }
   try {
     const route = new URL(req.url, 'http://localhost').pathname;
     if (route === '/api/state' && req.method === 'GET') return json(res, { dataDir, records: await listRecords(), types: await listTypes(), mcpSettings });
+    if (route === '/api/browser-bridge' && req.method === 'GET') return json(res, browserBridge ? await browserBridge.status() : { available: false });
+    if (route === '/api/browser-bridge/connect' && req.method === 'POST') {
+      if (!browserBridge) return json(res, { error: 'Open the desktop app to connect a browser.' }, 400);
+      return json(res, await browserBridge.connect(await body(req)));
+    }
+    if (route === '/api/browser-bridge/open-folder' && req.method === 'POST') {
+      if (!browserBridge) return json(res, { error: 'Open the desktop app to connect a browser.' }, 400);
+      await browserBridge.openFolder(); return json(res, { ok: true });
+    }
     if (route === '/api/profile' && req.method === 'GET') return send(res, 200, 'text/plain; charset=utf-8', await fs.readFile(path.join(dataDir, 'PROFILE.md')));
     if (route === '/api/open-folder' && req.method === 'POST') { openBrowser(dataDir); return json(res, { ok: true }); }
     if (route === '/api/inspect' && req.method === 'POST') return json(res, await inspectUrl((await body(req)).url));

@@ -4,6 +4,9 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
+import { randomUUID } from 'node:crypto';
+import { nativeClient } from './native-client.mjs';
+import { launcherText, extensionId } from '../desktop/browser-bridge.mjs';
 
 const folders = (await fs.readdir('out', { withFileTypes: true }))
   .filter(entry => entry.isDirectory() && entry.name === `TasteMate-${process.platform}-${process.arch}`);
@@ -39,6 +42,27 @@ try {
   });
   if (!response.result?.content?.[0]?.text?.includes('Desktop utility')) throw new Error(`Unexpected MCP response: ${JSON.stringify(response)}`);
   console.log(`Packaged MCP passed: ${executable}`);
+
+  // Use the actual shell/cmd launcher and the host inside app.asar. This checks
+  // stdio and ASAR module loading without requiring a global Node installation.
+  const resources = process.platform === 'darwin' ? path.join(root, 'TasteMate.app', 'Contents', 'Resources') : path.join(root, 'resources');
+  const appDir = path.join(resources, 'app.asar');
+  const manifest = JSON.parse(await fs.readFile('extension/manifest.json', 'utf8'));
+  const origin = `chrome-extension://${extensionId(manifest.key)}/`;
+  const configPath = path.join(dataDir, 'native-config.json');
+  await fs.writeFile(configPath, JSON.stringify({ version: 1, dataDir, allowedOrigins: [origin] }));
+  const launcher = path.join(dataDir, process.platform === 'win32' ? 'native-host.cmd' : 'native-host');
+  await fs.writeFile(launcher, launcherText({ executable, script: path.join(appDir, 'native-host.mjs'), configPath }), { mode: 0o700 });
+  const host = process.platform === 'win32' ? nativeClient('cmd.exe', ['/d', '/s', '/c', `""${launcher}" ${origin}"`]) : nativeClient(launcher, [origin]);
+  try {
+    const hello = await host.request('hello');
+    if (!hello.result?.types?.some(type => type.id === 'website')) throw new Error(`Packaged native hello failed: ${JSON.stringify(hello)}`);
+    const capture = { id: randomUUID(), title: 'Packaged browser capture', mode: 'text', sourceText: 'A precise heading.', typeId: 'website', url: 'https://example.org/', capturedAt: new Date().toISOString(), annotations: [{ polarity: 'prefer', note: 'Specific, useful wording.' }] };
+    const saved = await host.request('capture.save', capture);
+    if (!saved.ok) throw new Error(`Packaged native save failed: ${JSON.stringify(saved)}`);
+    if (!(await fs.readFile(path.join(dataDir, 'PROFILE.md'), 'utf8')).includes(capture.title)) throw new Error('Packaged capture missing from profile.');
+    console.log(`Packaged browser host passed: ${executable}`);
+  } finally { await host.close(); }
 } finally {
   child.kill();
   await fs.rm(dataDir, { recursive: true, force: true });

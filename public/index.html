@@ -20,6 +20,7 @@
         <div class="storage-path" id="storage-path" title="Local data folder"></div>
         <button class="rail-link" id="open-folder" type="button">Open folder</button>
         <button class="rail-link" id="agent-access" type="button">Use with AI agents</button>
+        <button class="rail-link" id="browser-extension" type="button">Browser extension</button>
         <div class="local-note"><span class="local-dot"></span> Stored on this computer</div>
       </div>
     </aside>
@@ -91,6 +92,25 @@
     <div class="modal-head"><div><p class="eyebrow">AGENT ACCESS</p><h2>Use your taste profile</h2></div><button class="icon-button" type="button" data-close="access-dialog" aria-label="Close">×</button></div>
     <div class="access-body"><p>The readable profile is updated every time you save. Point an agent at the folder below and ask it to read <code>PROFILE.md</code> and the examples matching the project type before a writing or design task.</p><div class="copy-row"><code id="access-path"></code><button class="button button-secondary" id="copy-path" type="button">Copy path</button></div><div id="native-access" hidden><p>For desktop MCP clients, use these settings for a server named <code>tastemate</code>. The GUI does not need to be open.</p><div class="copy-row"><code id="native-mcp-command"></code><button class="button button-secondary" id="copy-mcp-command" type="button">Copy settings</button></div></div><div class="access-columns"><div><h3>ChatGPT / Codex</h3><p>Open this folder as a local project, or place it alongside a project and link it from that project’s <code>AGENTS.md</code>. The local MCP server also works with desktop Codex.</p></div><div><h3>Claude</h3><p>Open the folder in Claude Code or reference it from <code>CLAUDE.md</code>. Claude Desktop can use the included local MCP server.</p></div></div><p class="muted">Web chats need the exported ZIP or its relevant files uploaded to a project. Local data is never uploaded by this app.</p></div>
     <div class="modal-actions"><button class="button button-primary" type="button" data-close="access-dialog">Done</button></div>
+  </dialog>
+  <dialog id="browser-dialog" class="modal modal-wide">
+    <div class="modal-head"><div><p class="eyebrow">BROWSER CAPTURE</p><h2>Save references as you browse</h2></div><button class="icon-button" type="button" data-close="browser-dialog" aria-label="Close">×</button></div>
+    <div class="access-body">
+      <p>Capture a visible page, crop an area, or save selected text. Add what works and what to avoid, then send it straight to your local library.</p>
+      <p id="bridge-status" role="status">Checking connection…</p>
+      <div id="bridge-setup" hidden>
+        <div class="form-grid"><label class="field">Browser<select id="bridge-browser"><option value="chrome">Google Chrome</option><option value="edge">Microsoft Edge</option></select></label><div class="field"><span>Connect this computer</span><button class="button button-primary" id="bridge-connect" type="button">Connect Chrome</button></div></div>
+        <div id="bridge-instructions" hidden>
+          <h3>Install the development extension</h3>
+          <ol><li>Open <code id="bridge-extensions-page">chrome://extensions</code> in your browser and turn on <strong>Developer mode</strong>.</li><li>Click <strong>Load unpacked</strong> and select the folder below.</li><li>Pin <strong>TasteMate Capture</strong> to the toolbar. Open a website and click it to capture.</li></ol>
+          <div class="copy-row"><code id="bridge-folder"></code><button class="button button-secondary" id="bridge-copy" type="button">Copy path</button><button class="button button-secondary" id="bridge-open" type="button">Open folder</button></div>
+          <p class="muted">After updating TasteMate, click Reload on the extension’s browser card. The desktop window can be closed while you save captures.</p>
+          <details><summary>Extension identity</summary><p>Expected ID: <code id="bridge-id"></code></p><p>The downloaded extension uses a stable ID so reconnecting is not needed after each update.</p></details>
+        </div>
+      </div>
+      <p class="muted">Screenshots and saved text stay on this computer. Unfinished captures stay in this browser until you save or discard them. Chrome and Edge are supported in this first version.</p>
+    </div>
+    <div class="modal-actions"><button class="button button-primary" type="button" data-close="browser-dialog">Done</button></div>
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>

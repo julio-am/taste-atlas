@@ -30,6 +30,9 @@ if (process.argv.includes('--mcp')) {
     let localServer = null;
     let localOrigin = null;
     let startupError = null;
+    const requestedExample = args => args.find(arg => /^--open-example=[a-f0-9-]{36}$/.test(arg))?.split('=')[1];
+    let exampleId = requestedExample(process.argv);
+    const libraryUrl = () => localServer ? `${localServer.url}${exampleId ? `?example=${exampleId}` : ''}` : null;
 
     function statusPage(title, description) {
       const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -73,14 +76,17 @@ if (process.argv.includes('--mcp')) {
         }
       });
       current.on('closed', () => { if (window === current) window = null; });
-      const target = localServer?.url || (startupError
+      const target = libraryUrl() || (startupError
         ? statusPage('TasteMate could not open', startupError)
         : statusPage('Opening TasteMate', 'Preparing your local profile…'));
       return current.loadURL(target).catch(showStartupError);
     }
 
-    app.on('second-instance', () => {
+    app.on('second-instance', (_event, argv) => {
+      const targetId = requestedExample(argv);
+      if (targetId) exampleId = targetId;
       if (!window) void createWindow();
+      else if (targetId && localServer) void window.loadURL(libraryUrl()).catch(showStartupError);
       if (window.isMinimized()) window.restore();
       window.show();
       window.focus();
@@ -99,13 +105,17 @@ if (process.argv.includes('--mcp')) {
 
       try {
         const { startServer } = await import('../server.mjs');
+        const { createBrowserBridge } = await import('./browser-bridge.mjs');
+        const browserBridge = createBrowserBridge({ appDir: app.getAppPath(), userDataDir: app.getPath('userData'), executable: process.execPath, dataDir, appArgs: app.isPackaged ? [] : [app.getAppPath()], openPath: folder => shell.openPath(folder) });
+        // Refresh paths after an app update without making browser setup a startup dependency.
+        await browserBridge.refresh().catch(error => console.error('Browser connection refresh:', error.message));
         const mcpSettings = process.platform === 'win32'
           ? { command: process.execPath, args: [fileURLToPath(new URL('../mcp-server.mjs', import.meta.url))], env: { ELECTRON_RUN_AS_NODE: '1' } }
           : { command: process.execPath, args: ['--mcp'] };
-        localServer = await startServer({ port: 0, launchBrowser: false, mcpSettings });
+        localServer = await startServer({ port: 0, launchBrowser: false, mcpSettings, browserBridge });
         trace('local server started');
         localOrigin = new URL(localServer.url).origin;
-        if (window && !window.isDestroyed()) await window.loadURL(localServer.url);
+        if (window && !window.isDestroyed()) await window.loadURL(libraryUrl());
         trace('library window loaded');
         console.log('TasteMate window loaded.');
       } catch (error) {
