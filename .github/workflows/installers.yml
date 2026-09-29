@@ -39,8 +39,21 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y fakeroot
       - run: npm ci
       - run: npm test
-      - name: Prepare Developer ID signing and notarization
+      - name: Check whether Mac signing is configured
+        id: mac_signing
         if: runner.os == 'macOS'
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+        shell: bash
+        run: |
+          if [[ -n "$MACOS_CERTIFICATE_P12_BASE64" ]]; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo '::notice::Skipping the signed Mac installer until Developer ID credentials are configured.'
+          fi
+      - name: Prepare Developer ID signing and notarization
+        if: runner.os == 'macOS' && steps.mac_signing.outputs.ready == 'true'
         env:
           MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -49,14 +62,17 @@ jobs:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: bash scripts/prepare-macos-signing.sh
       - run: npm run make
+        if: runner.os != 'macOS' || steps.mac_signing.outputs.ready == 'true'
       - run: node scripts/smoke-packaged.mjs
+        if: runner.os != 'macOS' || steps.mac_signing.outputs.ready == 'true'
       - name: Launch packaged Mac window
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && steps.mac_signing.outputs.ready == 'true'
         run: node scripts/smoke-gui.mjs
       - name: Verify app from the DMG
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && steps.mac_signing.outputs.ready == 'true'
         run: bash scripts/verify-macos-distribution.sh
       - uses: actions/upload-artifact@v4
+        if: runner.os != 'macOS' || steps.mac_signing.outputs.ready == 'true'
         with:
           name: taste-atlas-${{ matrix.artifact }}
           path: out/make/**

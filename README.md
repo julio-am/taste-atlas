@@ -19,7 +19,7 @@ This is a local testing workaround for an unsigned build. Do not use it for a co
 
 ### Enable signed macOS installers
 
-The **Desktop installers** workflow requires five repository secrets before it will publish another Mac DMG. An Apple Developer Program membership alone is insufficient: export your **Developer ID Application** certificate **with its private key** as a password-protected `.p12`, and create a **Team** App Store Connect API key (`.p8`) for notarization. Do not commit either file or paste them into an issue or chat.
+The **Desktop installers** workflow requires five repository secrets before it will publish another Mac DMG. Until they are configured, it skips signed Mac publishing; the separate **Mac packaging check** still builds and launches an unsigned app on a Mac runner without uploading it. An Apple Developer Program membership alone is insufficient: export your **Developer ID Application** certificate **with its private key** as a password-protected `.p12`, and create a **Team** App Store Connect API key (`.p8`) for notarization. Do not commit either file or paste them into an issue or chat.
 
 In the repository's **Settings → Secrets and variables → Actions**, add:
 
