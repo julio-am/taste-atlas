@@ -1,0 +1,35 @@
+name: Mac packaging check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unsigned-mac-build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm test
+      - run: npm run make
+      - run: node scripts/smoke-packaged.mjs
+      - run: node scripts/smoke-gui.mjs
+      - name: Check the DMG contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg="$(find out/make -type f -name '*.dmg' -print -quit)"
+          test -n "$dmg"
+          volume="$(mktemp -d "$RUNNER_TEMP/taste-atlas-volume.XXXXXX")"
+          trap 'hdiutil detach "$volume" >/dev/null 2>&1 || true; rm -rf "$volume"' EXIT
+          hdiutil attach -nobrowse -readonly -mountpoint "$volume" "$dmg"
+          test -d "$volume/Taste Atlas.app"
+          test -L "$volume/Applications"

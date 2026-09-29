@@ -1,6 +1,6 @@
 {
   "name": "taste-atlas",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "productName": "Taste Atlas",
   "description": "A local taste profile for design and writing references",
   "author": "Julio Medina",
@@ -16,16 +16,17 @@
     "start:web": "node server.mjs",
     "package": "electron-forge package",
     "make": "electron-forge make",
+    "postmake": "node scripts/create-macos-dmg.mjs",
     "test": "node --test"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.11.2",
-    "@electron-forge/maker-deb": "^7.11.2",
-    "@electron-forge/maker-dmg": "^7.11.2",
-    "@electron-forge/maker-squirrel": "^7.11.2",
+    "@electron-forge/cli": "^8.0.1",
+    "@electron-forge/maker-deb": "^8.0.1",
+    "@electron-forge/maker-squirrel": "^8.0.1",
+    "@electron-forge/maker-zip": "^8.0.1",
     "electron": "^44.5.0"
   }
 }
