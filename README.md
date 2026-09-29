@@ -6,7 +6,16 @@ A local desktop app for collecting examples of writing and visual design, adding
 
 Download the installer for your operating system from the **Desktop installers** workflow's artifacts in [Actions](https://github.com/julio-am/taste-atlas/actions). macOS builds produce a DMG for Apple Silicon and a separate DMG for Intel, Windows produces a Squirrel `Setup.exe`, and Linux produces a `.deb`. The installer contains Electron and Node, so users do not need to install Node separately.
 
-The current builds are unsigned. macOS Gatekeeper and Windows SmartScreen may warn on first launch. Code signing and macOS notarization are needed before a broad public release.
+The current builds are unsigned. macOS Gatekeeper may report that Taste Atlas is **damaged and cannot be opened** when the downloaded app is quarantined. The CI launch check exercises the packaged app on macOS, but it does not make the downloaded DMG trusted by Gatekeeper. Windows SmartScreen may also warn. A regular public Mac installer requires an Apple Developer ID signature and notarization.
+
+For personal testing of a build downloaded from this repository's Actions workflow, first check that the ZIP's SHA-256 matches the artifact digest shown by GitHub. Unzip it, open the DMG, and copy `Taste Atlas.app` to Applications. If macOS then blocks this *verified* copy, you can remove quarantine from only this app and launch it:
+
+```sh
+xattr -dr com.apple.quarantine "/Applications/Taste Atlas.app"
+open "/Applications/Taste Atlas.app"
+```
+
+This is a local testing workaround for an unsigned build. Do not use it for a copy whose source or digest you cannot verify. It does not disable Gatekeeper system-wide. A signed and notarized release is required to eliminate this manual step for other users.
 
 To run or build from source, install [Node.js 22.13 or newer](https://nodejs.org/) and run:
 
