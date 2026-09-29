@@ -13,7 +13,8 @@ const executable = process.platform === 'darwin'
   ? path.join(root, 'Taste Atlas.app', 'Contents', 'MacOS', 'taste-atlas')
   : path.join(root, process.platform === 'win32' ? 'taste-atlas.exe' : 'taste-atlas');
 const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'taste-atlas-package-'));
-const args = process.platform === 'linux' && process.getuid?.() === 0 ? ['--no-sandbox', '--mcp'] : ['--mcp'];
+// The unpackaged Linux build lacks the root-owned SUID helper that the .deb installs.
+const args = process.platform === 'linux' ? ['--no-sandbox', '--mcp'] : ['--mcp'];
 const child = spawn(executable, args, { env: { ...process.env, TASTE_ATLAS_DIR: dataDir }, stdio: ['pipe', 'pipe', 'pipe'] });
 let errors = '';
 child.stderr.on('data', chunk => { errors += chunk; });
