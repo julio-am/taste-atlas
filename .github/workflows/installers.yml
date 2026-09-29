@@ -40,6 +40,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run make
+      - run: node scripts/smoke-packaged.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: taste-atlas-${{ matrix.artifact }}
