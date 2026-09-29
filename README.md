@@ -6,16 +6,32 @@ A local desktop app for collecting examples of writing and visual design, adding
 
 Download the installer for your operating system from the **Desktop installers** workflow's artifacts in [Actions](https://github.com/julio-am/taste-atlas/actions). macOS builds produce a DMG for Apple Silicon and a separate DMG for Intel, Windows produces a Squirrel `Setup.exe`, and Linux produces a `.deb`. The installer contains Electron and Node, so users do not need to install Node separately.
 
-The current builds are unsigned. macOS Gatekeeper may report that Taste Atlas is **damaged and cannot be opened** when the downloaded app is quarantined. The CI launch check exercises the packaged app on macOS, but it does not make the downloaded DMG trusted by Gatekeeper. Windows SmartScreen may also warn. A regular public Mac installer requires an Apple Developer ID signature and notarization.
+The 0.2.1 Mac artifacts were unsigned, so Gatekeeper may report that Taste Atlas is **damaged and cannot be opened**. New Mac installers are published only after Developer ID signing, Apple notarization, and verification of the app copied out of the DMG. Windows SmartScreen may still warn because the Windows installer is unsigned.
 
-For personal testing of a build downloaded from this repository's Actions workflow, first check that the ZIP's SHA-256 matches the artifact digest shown by GitHub. Unzip it, open the DMG, and copy `Taste Atlas.app` to Applications. If macOS then blocks this *verified* copy, you can remove quarantine from only this app and launch it:
+For personal testing of an older unsigned build downloaded from this repository's Actions workflow, first check that the ZIP's SHA-256 matches the artifact digest shown by GitHub. Unzip it, open the DMG, and copy `Taste Atlas.app` to Applications. If macOS then blocks this *verified* copy, you can remove quarantine from only this app and launch it:
 
 ```sh
 xattr -dr com.apple.quarantine "/Applications/Taste Atlas.app"
 open "/Applications/Taste Atlas.app"
 ```
 
-This is a local testing workaround for an unsigned build. Do not use it for a copy whose source or digest you cannot verify. It does not disable Gatekeeper system-wide. A signed and notarized release is required to eliminate this manual step for other users.
+This is a local testing workaround for an unsigned build. Do not use it for a copy whose source or digest you cannot verify. It does not disable Gatekeeper system-wide. Use a new signed and notarized build to avoid this step.
+
+### Enable signed macOS installers
+
+The **Desktop installers** workflow requires five repository secrets before it will publish another Mac DMG. An Apple Developer Program membership alone is insufficient: export your **Developer ID Application** certificate **with its private key** as a password-protected `.p12`, and create a **Team** App Store Connect API key (`.p8`) for notarization. Do not commit either file or paste them into an issue or chat.
+
+In the repository's **Settings → Secrets and variables → Actions**, add:
+
+| Secret | Value |
+| --- | --- |
+| `MACOS_CERTIFICATE_P12_BASE64` | Base64 text of the `.p12` export |
+| `MACOS_CERTIFICATE_PASSWORD` | Password used when exporting the `.p12` |
+| `APPLE_API_KEY_P8_BASE64` | Base64 text of the App Store Connect Team `.p8` key |
+| `APPLE_API_KEY_ID` | The key's 10-character ID |
+| `APPLE_API_ISSUER_ID` | The Team key's issuer UUID |
+
+On a Mac, `base64 -i /path/to/certificate.p12 | pbcopy` copies the certificate value; repeat with the `.p8` file for its secret. Check the certificate and private key in Keychain Access or run `security find-identity -v -p codesigning` and look for **Developer ID Application**. After adding the secrets, use **Actions → Desktop installers → Run workflow**. The Mac jobs import the certificate into a temporary keychain, sign the app with hardened runtime, submit it to Apple for notarization, and check its signature, stapled ticket, and Gatekeeper assessment after copying it from the finished DMG. If any step fails, no Mac artifact is uploaded. The Windows and Linux jobs do not use these secrets.
 
 To run or build from source, install [Node.js 22.13 or newer](https://nodejs.org/) and run:
 

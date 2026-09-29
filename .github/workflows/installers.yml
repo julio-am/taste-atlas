@@ -39,14 +39,33 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y fakeroot
       - run: npm ci
       - run: npm test
+      - name: Prepare Developer ID signing and notarization
+        if: runner.os == 'macOS'
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: bash scripts/prepare-macos-signing.sh
       - run: npm run make
       - run: node scripts/smoke-packaged.mjs
       - name: Launch packaged Mac window
         if: runner.os == 'macOS'
         run: node scripts/smoke-gui.mjs
+      - name: Verify app from the DMG
+        if: runner.os == 'macOS'
+        run: bash scripts/verify-macos-distribution.sh
       - uses: actions/upload-artifact@v4
         with:
           name: taste-atlas-${{ matrix.artifact }}
           path: out/make/**
           if-no-files-found: error
           retention-days: 30
+      - name: Remove temporary signing credentials
+        if: always() && runner.os == 'macOS'
+        run: |
+          if [[ -f "$RUNNER_TEMP/taste-atlas-signing.keychain-db" ]]; then
+            security delete-keychain "$RUNNER_TEMP/taste-atlas-signing.keychain-db"
+          fi
+          rm -f "$RUNNER_TEMP"/AuthKey_*.p8 "$RUNNER_TEMP/taste-atlas-developer-id.p12"
