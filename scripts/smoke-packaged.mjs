@@ -6,18 +6,18 @@ import path from 'node:path';
 import { createInterface } from 'node:readline';
 
 const folders = (await fs.readdir('out', { withFileTypes: true }))
-  .filter(entry => entry.isDirectory() && entry.name.endsWith(`-${process.platform}-${process.arch}`));
+  .filter(entry => entry.isDirectory() && entry.name === `TasteMate-${process.platform}-${process.arch}`);
 if (folders.length !== 1) throw new Error(`Expected one packaged app for ${process.platform}/${process.arch}, found ${folders.length}.`);
 const root = path.resolve('out', folders[0].name);
 const executable = process.platform === 'darwin'
-  ? path.join(root, 'Taste Atlas.app', 'Contents', 'MacOS', 'taste-atlas')
-  : path.join(root, process.platform === 'win32' ? 'taste-atlas.exe' : 'taste-atlas');
-const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'taste-atlas-package-'));
+  ? path.join(root, 'TasteMate.app', 'Contents', 'MacOS', 'tastemate')
+  : path.join(root, process.platform === 'win32' ? 'tastemate.exe' : 'tastemate');
+const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tastemate-package-'));
 // The unpackaged Linux build lacks the root-owned SUID helper that the .deb installs.
 const args = process.platform === 'win32'
   ? [path.join(root, 'resources', 'app.asar', 'mcp-server.mjs')]
   : process.platform === 'linux' ? ['--no-sandbox', '--mcp'] : ['--mcp'];
-const env = { ...process.env, TASTE_ATLAS_DIR: dataDir };
+const env = { ...process.env, TASTEMATE_DIR: dataDir };
 if (process.platform === 'win32') env.ELECTRON_RUN_AS_NODE = '1';
 const child = spawn(executable, args, { env, stdio: ['pipe', 'pipe', 'pipe'] });
 let errors = '';

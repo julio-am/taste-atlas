@@ -35,11 +35,11 @@ function checkLocal(req) {
   return true;
 }
 function openBrowser(url) {
-  if (process.env.TASTE_ATLAS_NO_BROWSER === '1') return;
+  if (process.env.TASTEMATE_NO_BROWSER === '1' || process.env.TASTE_ATLAS_NO_BROWSER === '1') return;
   const command = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer.exe' : 'xdg-open';
   execFile(command, [url], { windowsHide: true }, error => { if (error) console.log(`Open ${url} in your browser.`); });
 }
-export async function startServer({ port = Number(process.env.TASTE_ATLAS_PORT || 4786), launchBrowser = true, mcpSettings = null } = {}) {
+export async function startServer({ port = Number(process.env.TASTEMATE_PORT || process.env.TASTE_ATLAS_PORT || 4786), launchBrowser = true, mcpSettings = null } = {}) {
 await ensureStore();
 const server = http.createServer(async (req, res) => {
   if (!checkLocal(req)) { json(res, { error: 'Local requests only.' }, 403); return; }
@@ -65,7 +65,7 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'POST' && section === 'assets' && !childId) { const payload = await body(req); return json(res, { record: await withWriteLock(() => addAsset(id, payload)) }, 201); }
       if (req.method === 'DELETE' && section === 'assets' && childId) return json(res, { record: await withWriteLock(() => removeAsset(id, childId)) });
     }
-    if (route === '/api/export' && req.method === 'GET') return send(res, 200, 'application/zip', createZip(await listBundleFiles()), { 'Content-Disposition': 'attachment; filename="taste-profile.zip"' });
+    if (route === '/api/export' && req.method === 'GET') return send(res, 200, 'application/zip', createZip(await listBundleFiles()), { 'Content-Disposition': 'attachment; filename="tastemate-profile.zip"' });
     const asset = route.match(/^\/assets\/([a-f0-9-]+\.(png|jpg|webp|gif))$/);
     if (asset && req.method === 'GET') {
       const bytes = await readAsset(asset[1]);
@@ -88,7 +88,7 @@ await new Promise((resolve, reject) => {
   server.listen(port, '127.0.0.1', resolve);
 });
   const url = `http://127.0.0.1:${server.address().port}/`;
-  console.log(`Taste Atlas is ready: ${url}`);
+  console.log(`TasteMate is ready: ${url}`);
   console.log(`Your profile lives at: ${dataDir}`);
   if (launchBrowser) openBrowser(url);
   return { server, url, close: () => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())) };

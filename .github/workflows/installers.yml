@@ -74,14 +74,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: runner.os != 'macOS' || steps.mac_signing.outputs.ready == 'true'
         with:
-          name: taste-atlas-${{ matrix.artifact }}
+          name: tastemate-${{ matrix.artifact }}
           path: out/make/**
           if-no-files-found: error
           retention-days: 30
       - name: Remove temporary signing credentials
         if: always() && runner.os == 'macOS'
         run: |
-          if [[ -f "$RUNNER_TEMP/taste-atlas-signing.keychain-db" ]]; then
-            security delete-keychain "$RUNNER_TEMP/taste-atlas-signing.keychain-db"
+          if [[ -f "$RUNNER_TEMP/tastemate-signing.keychain-db" ]]; then
+            security delete-keychain "$RUNNER_TEMP/tastemate-signing.keychain-db"
           fi
-          rm -f "$RUNNER_TEMP"/AuthKey_*.p8 "$RUNNER_TEMP/taste-atlas-developer-id.p12"
+          rm -f "$RUNNER_TEMP"/AuthKey_*.p8 "$RUNNER_TEMP/tastemate-developer-id.p12"

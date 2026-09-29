@@ -13,7 +13,7 @@ export function createZip(files) {
   const locals = [], directory = [];
   let offset = 0;
   for (const file of files) {
-    const name = Buffer.from(`taste-profile/${file.name}`, 'utf8');
+    const name = Buffer.from(`tastemate-profile/${file.name}`, 'utf8');
     const bytes = Buffer.from(file.bytes);
     if (name.length > 65535 || bytes.length > 0xffffffff || offset > 0xffffffff) throw new Error('Export exceeds ZIP format limits.');
     const checksum = crc32(bytes);

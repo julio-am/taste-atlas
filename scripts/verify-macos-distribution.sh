@@ -8,8 +8,8 @@ if [[ -z "$dmg" ]]; then
   exit 1
 fi
 
-volume="$(mktemp -d "${RUNNER_TEMP:-/tmp}/taste-atlas-volume.XXXXXX")"
-installed="$(mktemp -d "${RUNNER_TEMP:-/tmp}/taste-atlas-installed.XXXXXX")/Taste Atlas.app"
+volume="$(mktemp -d "${RUNNER_TEMP:-/tmp}/tastemate-volume.XXXXXX")"
+installed="$(mktemp -d "${RUNNER_TEMP:-/tmp}/tastemate-installed.XXXXXX")/TasteMate.app"
 mounted=0
 cleanup() {
   if [[ "$mounted" == 1 ]]; then hdiutil detach "$volume" >/dev/null 2>&1 || true; fi
@@ -19,7 +19,7 @@ trap cleanup EXIT
 
 hdiutil attach -nobrowse -readonly -mountpoint "$volume" "$dmg" >/dev/null
 mounted=1
-ditto "$volume/Taste Atlas.app" "$installed"
+ditto "$volume/TasteMate.app" "$installed"
 codesign --verify --deep --strict --verbose=2 "$installed"
 xcrun stapler validate "$installed"
 spctl --assess --type execute --verbose=4 "$installed"
