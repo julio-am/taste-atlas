@@ -1,5 +1,5 @@
 // Verify the packaged executable's read-only MCP entry point on each build OS.
-import { spawn } from 'node:child_process';
+import { spawn, execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,6 +7,8 @@ import { createInterface } from 'node:readline';
 import { randomUUID } from 'node:crypto';
 import { nativeClient } from './native-client.mjs';
 import { launcherText, extensionId } from '../desktop/browser-bridge.mjs';
+import { promisify } from 'node:util';
+import { pathToFileURL } from 'node:url';
 
 const folders = (await fs.readdir('out', { withFileTypes: true }))
   .filter(entry => entry.isDirectory() && entry.name === `TasteMate-${process.platform}-${process.arch}`);
@@ -49,6 +51,18 @@ try {
   const appDir = path.join(resources, 'app.asar');
   const manifest = JSON.parse(await fs.readFile('extension/manifest.json', 'utf8'));
   const origin = `chrome-extension://${extensionId(manifest.key)}/`;
+  const setupScript = `
+    const { createBrowserBridge } = await import(${JSON.stringify(pathToFileURL(path.join(appDir, 'desktop', 'browser-bridge.mjs')).href)});
+    const bridge = createBrowserBridge({ appDir: ${JSON.stringify(appDir)}, userDataDir: ${JSON.stringify(path.join(dataDir, 'user-data'))}, executable: process.execPath, dataDir: ${JSON.stringify(dataDir)}, openPath: async () => '', resolveManifest: () => ({ path: ${JSON.stringify(path.join(dataDir, 'test-host.json'))} }) });
+    const state = await bridge.connect({ browser: 'chrome' });
+    await bridge.refresh();
+    console.log(JSON.stringify(state));
+  `;
+  const setup = await promisify(execFile)(executable, ['--input-type=module', '-e', setupScript], { env: { ...env, ELECTRON_RUN_AS_NODE: '1' }, timeout: 20000 });
+  const bridge = JSON.parse(setup.stdout.trim());
+  const extracted = JSON.parse(await fs.readFile(path.join(bridge.extensionDir, 'manifest.json'), 'utf8'));
+  if (extracted.key !== manifest.key || !bridge.browsers.includes('chrome')) throw new Error('Packaged extension setup failed.');
+  console.log('Packaged extension extraction and connection setup passed.');
   const configPath = path.join(dataDir, 'native-config.json');
   await fs.writeFile(configPath, JSON.stringify({ version: 1, dataDir, allowedOrigins: [origin] }));
   const launcher = path.join(dataDir, process.platform === 'win32' ? 'native-host.cmd' : 'native-host');

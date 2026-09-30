@@ -38,7 +38,7 @@ async function writeJson(file, data) {
   await fs.rename(temp, file);
 }
 
-export function createBrowserBridge({ appDir, userDataDir, executable, dataDir, appArgs = [], openPath }) {
+export function createBrowserBridge({ appDir, userDataDir, executable, dataDir, appArgs = [], openPath, resolveManifest }) {
   const bridgeDir = path.join(userDataDir, 'browser-bridge');
   const configPath = path.join(bridgeDir, 'config.json');
   const extensionDir = path.join(userDataDir, 'browser-extension');
@@ -57,7 +57,7 @@ export function createBrowserBridge({ appDir, userDataDir, executable, dataDir, 
     await fs.writeFile(launcher, launcherText({ executable, script: path.join(appDir, 'native-host.mjs'), configPath }), { mode: 0o700 });
     await fs.chmod(launcher, 0o700);
     for (const browser of browsers) {
-      const destination = manifestLocation(browser, { bridgeDir });
+      const destination = resolveManifest ? resolveManifest(browser) : manifestLocation(browser, { bridgeDir });
       await writeJson(destination.path, { name: HOST_NAME, description: 'Save browser captures to your local TasteMate profile', path: launcher, type: 'stdio', allowed_origins: config.allowedOrigins });
       if (destination.registry) await exec('reg.exe', ['add', destination.registry, '/ve', '/t', 'REG_SZ', '/d', destination.path, '/f'], { windowsHide: true });
     }

@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { encodeMessage, readMessages } from '../native-protocol.mjs';
 export function nativeClient(command, args, env = {}) {
-  const child = spawn(command, args, { env: { ...process.env, ...env }, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+  const child = spawn(command, args, { env: { ...process.env, ...env }, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, windowsVerbatimArguments: process.platform === 'win32' && command.toLowerCase().endsWith('cmd.exe') });
   const pending = new Map();
   let stderr = '', ended = false;
   child.stderr.on('data', data => { stderr += data; });

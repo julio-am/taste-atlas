@@ -44,9 +44,10 @@ try {
   await page.locator('#passage').evaluate(node => { const range = document.createRange(); range.selectNodeContents(node); const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range); });
   // CDP invokes the real browser action, including activeTab permission. No
   // screenshot APIs, native messages, or storage are mocked in this test.
-  const cdp = await context.newCDPSession(page);
-  const { targetInfo } = await cdp.send('Target.getTargetInfo');
   const browserCdp = await context.browser().newBrowserCDPSession();
+  const { targetInfos } = await browserCdp.send('Target.getTargets', { filter: [{ type: 'tab' }] });
+  const targetInfo = targetInfos.find(target => target.url === page.url());
+  assert.ok(targetInfo, `No browser tab target for fixture: ${JSON.stringify(targetInfos)}`);
   await browserCdp.send('Extensions.triggerAction', { id, targetId: targetInfo.targetId });
   const read = () => worker.evaluate(async () => { const { readDraft } = await import('./drafts.js'); const d = await readDraft(); return d ? { ...d, image: Boolean(d.image) } : null; });
   await until(async () => Boolean((await read())?.image), 'toolbar screenshot capture');
@@ -120,7 +121,7 @@ try {
     for (const [i, page] of context.pages().entries()) {
       console.error(`Browser page ${i}: ${page.url()}`);
       console.error(await page.locator('body').innerText().catch(() => 'Could not read page'));
-      await page.screenshot({ path: path.join(artifacts, `failure-${i}.png`), fullPage: true }).catch(() => {});
+      await page.screenshot({ path: path.join(artifacts, `failure-${i}.png`), fullPage: true }).catch(cause => console.error('Screenshot failed:', cause.message));
     }
   }
   throw error;

@@ -43,7 +43,11 @@ function regionUI() {
   $('#crop-box').hidden = !active || !r;
   if (r) {
     Object.assign($('#crop-box').style, { left: `${r.x * 100}%`, top: `${r.y * 100}%`, width: `${r.width * 100}%`, height: `${r.height * 100}%` });
-    for (const key of ['x', 'y', 'width', 'height']) $(`#crop-${key}`).value = +(r[key] * 100).toFixed(1);
+  }
+  const values = r || { x: 0, y: 0, width: 1, height: 1 };
+  for (const key of ['x', 'y', 'width', 'height']) {
+    const field = $(`#crop-${key}`);
+    if (document.activeElement !== field) field.value = +(values[key] * 100).toFixed(1);
   }
 }
 function modesUI() {
