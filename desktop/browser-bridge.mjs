@@ -37,6 +37,16 @@ async function writeJson(file, data) {
   await fs.writeFile(temp, JSON.stringify(data, null, 2) + '\n', { mode: 0o600 });
   await fs.rename(temp, file);
 }
+async function copyExtensionTree(source, destination) {
+  // Electron's fs.cp wrapper cannot recursively copy an ASAR directory. Its
+  // readdir/readFile wrappers can, so use those for installed and source apps.
+  await fs.mkdir(destination, { recursive: true });
+  for (const entry of await fs.readdir(source, { withFileTypes: true })) {
+    const from = path.join(source, entry.name), to = path.join(destination, entry.name);
+    if (entry.isDirectory()) await copyExtensionTree(from, to);
+    else if (entry.isFile()) await fs.writeFile(to, await fs.readFile(from));
+  }
+}
 
 export function createBrowserBridge({ appDir, userDataDir, executable, dataDir, appArgs = [], openPath, resolveManifest }) {
   const bridgeDir = path.join(userDataDir, 'browser-bridge');
@@ -62,8 +72,7 @@ export function createBrowserBridge({ appDir, userDataDir, executable, dataDir, 
       if (destination.registry) await exec('reg.exe', ['add', destination.registry, '/ve', '/t', 'REG_SZ', '/d', destination.path, '/f'], { windowsHide: true });
     }
     // Copy out of app.asar so Load unpacked can read the extension.
-    await fs.mkdir(extensionDir, { recursive: true });
-    await fs.cp(path.join(appDir, 'extension'), extensionDir, { recursive: true });
+    await copyExtensionTree(path.join(appDir, 'extension'), extensionDir);
     return status();
   }
   return {

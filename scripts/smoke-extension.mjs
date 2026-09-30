@@ -33,7 +33,7 @@ try {
   context = await chromium.launchPersistentContext(profile, {
     headless: false,
     ...(process.env.TASTEMATE_CHROME ? { executablePath: process.env.TASTEMATE_CHROME } : { channel: 'chromium' }),
-    args: [`--disable-extensions-except=${path.resolve('extension')}`, `--load-extension=${path.resolve('extension')}`, '--no-sandbox', '--enable-unsafe-extension-debugging'],
+    args: [`--disable-extensions-except=${path.resolve('extension')}`, `--load-extension=${path.resolve('extension')}`, '--no-sandbox', '--enable-unsafe-extension-debugging', '--disable-features=CDPScreenshotNewSurface'],
     ignoreDefaultArgs: ['--disable-extensions'],
     viewport: { width: 1100, height: 760 },
   });
@@ -49,7 +49,19 @@ try {
   const targetInfo = targetInfos.find(target => target.url === page.url());
   assert.ok(targetInfo, `No browser tab target for fixture: ${JSON.stringify(targetInfos)}`);
   await browserCdp.send('Extensions.triggerAction', { id, targetId: targetInfo.targetId });
-  const read = () => worker.evaluate(async () => { const { readDraft } = await import('./drafts.js'); const d = await readDraft(); return d ? { ...d, image: Boolean(d.image) } : null; });
+  const read = () => worker.evaluate(() => new Promise((resolve, reject) => {
+    const request = indexedDB.open('tastemate-capture', 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('drafts')) { db.close(); resolve(null); return; }
+      const tx = db.transaction('drafts', 'readonly');
+      const get = tx.objectStore('drafts').get('current');
+      get.onsuccess = () => { const d = get.result; resolve(d ? { ...d, image: Boolean(d.image) } : null); };
+      get.onerror = () => reject(get.error);
+      tx.oncomplete = () => db.close();
+    };
+  }));
   await until(async () => Boolean((await read())?.image), 'toolbar screenshot capture');
   let draft = await read();
   assert.equal(draft.sourceText, 'Specific labels make the next step obvious.');
