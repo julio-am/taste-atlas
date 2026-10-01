@@ -1,5 +1,8 @@
 import { readDraft, writeDraft } from './drafts.js';
 import { native } from './native.js';
+import { setupStatusListener } from './setup-status.js';
+
+chrome.runtime.onMessageExternal.addListener(setupStatusListener({ native, getVersion: () => chrome.runtime.getManifest().version }));
 
 // All draft mutations run here so a popup and an expanded editor cannot race.
 let queue = Promise.resolve();

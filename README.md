@@ -77,6 +77,14 @@ For writing, select a passage on a page, right-click, and choose **Save selectio
 
 `npm run extension:build` produces `out/extension/tastemate-capture-0.4.0.zip` with `manifest.json` at its root. The **Browser capture check** workflow uploads the same archive. Unzip it before choosing **Load unpacked**, and still connect the desktop helper. The manifest contains a public key to keep its development ID stable; it contains no private signing key. Browser-store publication and store IDs can be configured as a later release step.
 
+## Installation website
+
+The installation page for **gettastemate.com** is maintained in `website/` and ready for static hosting on Cloudflare Pages. It guides desktop installation, Chrome Web Store installation, and an explicit connection check. Public download buttons stay unavailable until verified installer assets and a published extension listing are configured; development workflow artifacts are not offered to ordinary visitors.
+
+Extension **0.4.1** adds the website connection check. Update/reload a development copy to use it. Only the exact setup website origins can request it, and the response contains connection status and versions, never profile paths or library content. Earlier desktop 0.4 builds work with the new extension. Existing desktop **Browser extension → Chrome → Connect** setup is still required.
+
+See [website/README.md](website/README.md) for publishing, release configuration, and DNS setup. `node scripts/configure-website.mjs --release <published-tag>` verifies installer asset sizes and SHA-256 hashes before enabling public download links. The automated browser check also tests the website's real native connection and disconnected-helper recovery.
+
 ## Storage format
 
 ```text

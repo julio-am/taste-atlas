@@ -16,7 +16,7 @@ module.exports = {
     extendInfo: { LSMinimumSystemVersion: '13.0.0' },
     asar: true,
     icon: path.join(__dirname, 'assets', 'icon'),
-    ignore: [/^\/out(?:\/|$)/, /^\/test(?:\/|$)/, /^\/\.github(?:\/|$)/, /^\/scripts(?:\/|$)/],
+    ignore: [/^\/out(?:\/|$)/, /^\/test(?:\/|$)/, /^\/website(?:\/|$)/, /^\/\.github(?:\/|$)/, /^\/scripts(?:\/|$)/],
     ...(signMac ? {
       osxSign: { identity: process.env.MACOS_SIGN_IDENTITY, keychain: process.env.MACOS_KEYCHAIN_PATH },
       osxNotarize: {
