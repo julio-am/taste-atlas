@@ -39,6 +39,36 @@ try {
   });
   const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   assert.equal(new URL(worker.url()).hostname, id);
+  // Test the installation page at its real allowed origin. Requests are served
+  // from checked-in fixtures; native messaging below remains entirely real.
+  await context.route('https://gettastemate.com/**', async route => {
+    const pathname = new URL(route.request().url()).pathname;
+    const file = pathname === '/' ? 'index.html' : pathname.slice(1);
+    const allowed = ['index.html', 'app.js', 'install-core.js', 'style.css', 'releases.json', 'privacy.html'];
+    if (!allowed.includes(file)) return route.fulfill({ status: 404, body: '' });
+    const mime = file.endsWith('.js') ? 'text/javascript' : file.endsWith('.json') ? 'application/json' : file.endsWith('.css') ? 'text/css' : 'text/html';
+    return route.fulfill({ status: 200, contentType: mime, body: await fs.readFile(path.join('website', 'dist', file)) });
+  });
+  const setup = await context.newPage();
+  await setup.goto('https://gettastemate.com/');
+  await until(async () => !(await setup.locator('#release-notice').innerText()).includes('Checking download'), 'website release configuration');
+  const siteConfig = JSON.parse(await fs.readFile('website/dist/releases.json'));
+  await setup.locator('#platform').selectOption('macos-arm64');
+  assert.equal(await setup.locator('#download').getAttribute('href'), siteConfig.downloads['macos-arm64']?.url || null);
+  assert.equal(await setup.locator('#add-extension').getAttribute('href'), siteConfig.extension.storeUrl);
+  await setup.locator('#check-connection').click();
+  await setup.locator('#connection-result.success').waitFor();
+  assert.match(await setup.locator('#connection-result').innerText(), /TasteMate is connected/);
+  await setup.screenshot({ path: path.join(artifacts, 'installation-desktop.png'), fullPage: true });
+  await setup.setViewportSize({ width: 390, height: 844 });
+  assert.ok(await setup.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await setup.screenshot({ path: path.join(artifacts, 'installation-mobile.png'), fullPage: true });
+  await fs.rename(hostManifest, `${hostManifest}.disabled`);
+  await setup.locator('#check-connection').click();
+  await setup.locator('#connection-result.warning').waitFor();
+  assert.match(await setup.locator('#connection-result').innerText(), /desktop app is not connected/);
+  await fs.rename(`${hostManifest}.disabled`, hostManifest);
+  await setup.close();
   const page = context.pages()[0];
   await page.goto(`http://127.0.0.1:${fixture.address().port}`);
   await page.locator('#passage').evaluate(node => { const range = document.createRange(); range.selectNodeContents(node); const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range); });
