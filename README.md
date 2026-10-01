@@ -79,7 +79,7 @@ For writing, select a passage on a page, right-click, and choose **Save selectio
 
 ## Installation website
 
-The installation page for **gettastemate.com** is maintained in `website/` and hosted as a static Site. It guides desktop installation, Chrome Web Store installation, and an explicit connection check. Public download buttons stay unavailable until verified installer assets and a published extension listing are configured; development workflow artifacts are not offered to ordinary visitors.
+The installation page for **gettastemate.com** is maintained in `website/` and ready for static hosting on Cloudflare Pages. It guides desktop installation, Chrome Web Store installation, and an explicit connection check. Public download buttons stay unavailable until verified installer assets and a published extension listing are configured; development workflow artifacts are not offered to ordinary visitors.
 
 Extension **0.4.1** adds the website connection check. Update/reload a development copy to use it. Only the exact setup website origins can request it, and the response contains connection status and versions, never profile paths or library content. Earlier desktop 0.4 builds work with the new extension. Existing desktop **Browser extension → Chrome → Connect** setup is still required.
 

@@ -2,7 +2,29 @@
 
 Static installation flow for gettastemate.com. No framework, build step, account system, analytics, or user database. `dist/` is the complete public site. Source is also maintained in `website/` in julio-am/taste-atlas alongside the companion extension.
 
-The live site is registered by `.openai/hosting.json`. Publish through the Sites source/archive workflow. Domain registration remains at Squarespace; use only the actual DNS records returned by the hosting provider. DNS changes do not grant public access to a private preview.
+The production hosting target is Cloudflare Pages in the owner's account, with GitHub Releases serving installers and the Chrome Web Store serving the extension. The earlier ChatGPT Sites deployment is a separate private preview; its `.openai/hosting.json` and DNS records do not configure Cloudflare Pages. Domain registration remains at Squarespace.
+
+## Deploy to Cloudflare Pages
+
+In Cloudflare, open **Workers & Pages → Create application → Pages → Connect to Git** (also labeled **Import an existing Git repository**). Authorize the Cloudflare GitHub app for `julio-am/taste-atlas` and use these settings:
+
+| Setting | Value |
+| --- | --- |
+| Project name | `gettastemate` if available |
+| Production branch | `feature/website-installation` until the website is merged into `main` |
+| Framework preset | None |
+| Root directory | `website` |
+| Build command | `exit 0` |
+| Build output directory | `dist` |
+| Build environment variable | `SKIP_DEPENDENCY_INSTALL=true` |
+
+The output directory is relative to the configured root. The site is already built and committed; it needs no npm dependencies, Electron build, API token, or backend service. Skipping dependency installation prevents the desktop project's dependencies from being installed unnecessarily. Apply that variable to production and preview builds.
+
+Select **Save and Deploy**, then open the actual `*.pages.dev` URL Cloudflare returns. The page and privacy link should load. The connection check requires one of the exact supported origins listed below; the temporary Pages hostname is not allowed to contact the extension. Validate the native connection on `https://gettastemate.com` after connecting the domain.
+
+Cloudflare deploys later commits to the selected production branch automatically. After the website is merged into `main`, change the production branch to `main`. Follow [DNS.md](DNS.md) to connect the custom domains. Download/store buttons remain unavailable until real releases are configured below.
+
+Official references: [Git integration](https://developers.cloudflare.com/pages/get-started/git-integration/), [static HTML](https://developers.cloudflare.com/pages/framework-guides/deploy-anything/), and [skip dependency installation](https://developers.cloudflare.com/pages/configuration/build-image/#skip-dependency-install).
 
 ## Release configuration
 

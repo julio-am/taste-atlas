@@ -1,25 +1,37 @@
-# Connect gettastemate.com in Squarespace
+# Connect gettastemate.com to Cloudflare Pages
 
-The installation website is deployed at https://gettastemate.jcmcoding.chatgpt.site and is currently a private preview. Both custom hostnames have been registered with the hosting provider and are pending DNS verification. Connecting DNS does not make a private preview public.
+Keep the domain registered at Squarespace. To use the bare `gettastemate.com` domain with Cloudflare Pages, manage its DNS in the same Cloudflare account as the Pages project. This requires changing nameservers at Squarespace; it does not transfer domain registration or require a Squarespace website subscription.
 
-Open the Squarespace Domains dashboard, choose **gettastemate.com**, then **DNS**. Add the records below. Use the default TTL. The Host column is relative to `gettastemate.com`; Squarespace appends the domain automatically.
+The earlier instructions for `162.159.143.30`, `172.66.3.26`, and `custom-domains.chatgpt.site` applied to the ChatGPT Sites preview. Do not use those values for this Cloudflare Pages deployment. The new hostname and nameservers come from the owner's Cloudflare account, not from this document.
 
-Replace only existing parking/website A, AAAA, or CNAME records that conflict at `@` or `www`. Keep unrelated email (MX), SPF/DKIM, verification, and nameserver records. This is a DNS connection; the domain stays registered at Squarespace.
+## 1. Deploy the website first
 
-| Type | Host | Value |
-| --- | --- | --- |
-| A | @ | `162.159.143.30` |
-| A | @ | `172.66.3.26` |
-| CNAME | www | `custom-domains.chatgpt.site.` |
-| TXT | _openai-site-verification | `openai-site-verification=Q97a5zZo45y9ryT7rRMhAMl2pZw4l_c2HsgNSqq4Vyg` |
-| TXT | _cf-custom-hostname | `4d251484-f335-4328-9210-4d705dfab050` |
-| TXT | _openai-site-verification.www | `openai-site-verification=HIufVStrXaqXh_KPoti3nwGh8AqhhkKOohFJDB2I9BU` |
-| TXT | _cf-custom-hostname.www | `00dd9d45-5864-4e09-bb98-09e47cbedea5` |
+Follow [README.md](README.md#deploy-to-cloudflare-pages), confirm the actual `*.pages.dev` URL works, and keep that URL for the custom-domain setup. `gettastemate.pages.dev` is only a possible hostname; use the exact value Cloudflare assigns.
 
-After saving, allow DNS propagation and refresh the custom-domain status in the hosting provider. Additional certificate validation records may appear during provisioning; use the provider's current records if it requests them. Do not change nameservers or buy a Squarespace website plan for this static site.
+## 2. Move DNS management to Cloudflare
 
-The site remains a private preview until public access is enabled. Public installer downloads and the Chrome Web Store button remain unavailable until real releases are configured. The installation page itself is already deployed.
+1. Add `gettastemate.com` as a domain in the same Cloudflare account and choose its Free plan.
+2. Review the imported DNS records against Squarespace. Cloudflare's scan may miss records; preserve any existing email records (MX, SPF, DKIM, DMARC), unrelated subdomains, and verification records.
+3. If DNSSEC is enabled at Squarespace, disable it before replacing nameservers, as directed by Cloudflare's migration flow. Re-enable DNSSEC using Cloudflare's instructions after activation.
+4. Copy the exact nameservers assigned to this domain by Cloudflare.
+5. In Squarespace's domain settings, open the nameserver settings and replace the existing nameservers with Cloudflare's assigned pair. Use the nameserver setting, not new NS records in the ordinary DNS record editor.
+6. Wait until Cloudflare reports the domain as Active. From then on, make DNS record changes in Cloudflare; renew the domain through Squarespace.
 
-Squarespace’s official instructions: https://support.squarespace.com/hc/en-us/articles/360002101888-Edit-your-domain-s-DNS-records
+## 3. Attach the domain to Pages
 
-Records retrieved October 1, 2026 UTC (September 30 Pacific).
+Open **Workers & Pages → the Pages project → Custom domains → Set up a domain**. Add `gettastemate.com`, then add `www.gettastemate.com` separately. Follow the displayed DNS and certificate setup. Cloudflare can create the required CNAME records in the active zone.
+
+Replace only conflicting old website/parking A, AAAA, or CNAME records at `@` and `www` when the Pages setup requests it. If the old ChatGPT Sites custom-domain association blocks setup, detach those custom hostnames from the old deployment during the cutover. Keep unrelated DNS records.
+
+Do not merely add a CNAME without registering that hostname in the Pages project's **Custom domains** screen. The DNS target must be the actual project hostname shown by Cloudflare, and both custom hostnames must finish activation.
+
+Confirm that both HTTPS URLs load without a sign-in requirement and that the privacy link works. Check the desktop/extension connection from `https://gettastemate.com`, using extension 0.4.1 or later and an already-connected desktop helper. The temporary `*.pages.dev` hostname is deliberately outside the extension's allowed origins.
+
+Public installer and Chrome Web Store buttons remain unavailable until real releases are configured in `dist/releases.json`; a successful website deployment does not publish those releases.
+
+## References
+
+- [Cloudflare Pages custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/)
+- [Cloudflare nameserver setup and DNSSEC migration](https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/)
+
+Instructions checked September 30, 2026 Pacific.
