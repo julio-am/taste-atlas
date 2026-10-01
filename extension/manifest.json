@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "TasteMate Capture",
+  "version": "0.4.0",
+  "description": "Capture a page, image area, or text selection and save annotated references to your local TasteMate profile.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsQq5P8rMeKspu+NDDIPEHk87O1uzgebVdY6Lcy7Oo05j0CVMOoMUprrFe2sAe7yS2jeOrHeNnp96Z48GY16ZqXGLel/zXMUeYxcM7Q2GQBjiQa6amgjQ/GgZ9O2JbX9WZ/wdapSnIF6TWGtbsVtY9VuzwzqAxBhMUT/l8N5IZVyz9q/yru/gflx/37vubAV4X2ugfStyU24+Cwd2UG1aYKtGLdDw8/qwLtQIDbaTbF9pAqNVPhB2cv9+y7jYBhITi9fexGPh6qA4rDTLta9wxfZYJVEBgeZewwfw8yi1v8d2oqzqOvVzAYPIosIvE3fhGUHoVe2Iw1G1xfqONruU+QIDAQAB",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "contextMenus",
+    "nativeMessaging"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Save to TasteMate",
+    "default_popup": "panel.html",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+T",
+        "mac": "Alt+Shift+T"
+      },
+      "description": "Capture in TasteMate"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'none'; object-src 'none'; base-uri 'none'"
+  }
+}

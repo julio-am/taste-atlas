@@ -9,11 +9,11 @@ function crc32(bytes) {
   for (const b of bytes) crc = crcTable[(crc ^ b) & 255] ^ (crc >>> 8);
   return (crc ^ 0xffffffff) >>> 0;
 }
-export function createZip(files) {
+export function createZip(files, root = 'tastemate-profile/') {
   const locals = [], directory = [];
   let offset = 0;
   for (const file of files) {
-    const name = Buffer.from(`tastemate-profile/${file.name}`, 'utf8');
+    const name = Buffer.from(`${root}${file.name}`, 'utf8');
     const bytes = Buffer.from(file.bytes);
     if (name.length > 65535 || bytes.length > 0xffffffff || offset > 0xffffffff) throw new Error('Export exceeds ZIP format limits.');
     const checksum = crc32(bytes);

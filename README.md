@@ -1,6 +1,6 @@
 # TasteMate
 
-A local desktop app for collecting examples of writing and visual design, adding positive and negative annotations, and keeping a portable profile that AI agents can read. Nothing is sent to a TasteMate server. A website's public page is fetched when you save a URL without pasted text or choose **Preview capture**; screenshots must be attached or pasted by you.
+A local desktop app and browser companion for collecting examples of writing and visual design, adding positive and negative annotations, and keeping a portable profile that AI agents can read. Nothing is sent to a TasteMate server. Capture screenshots or selected text from Chrome/Edge, attach your own images, or fetch a public page's text using **Preview capture** in the desktop app.
 
 ## Install and run
 
@@ -46,6 +46,37 @@ To make an installer on the current platform, run `npm run make`. Distributables
 
 Add an example with a URL, image, or pasted writing sample. Choose its type, such as **Desktop utility**, **Website**, or **Blog**. Use **Types** to create your own types, rename them, and add your own type-wide guidance. Types with examples must be emptied before deletion; renaming a type keeps its examples. A positive or negative quick note is optional. Click an attached image to pin a detailed annotation to a location. Notes apply to that type by default; choose **All types** on a detailed note only for a preference that travels across formats. The profile folder updates immediately. Paste a screenshot while an example is open, or use **Add image**. Export downloads a ZIP containing the entire profile.
 
+## Browser extension (Chrome and Edge)
+
+Version 0.4 adds **TasteMate Capture**. This first version is loaded manually; it is not yet published in the browser stores.
+
+1. Open the desktop app and choose **Browser extension** in the sidebar.
+2. Choose Chrome or Edge and click **Connect**. TasteMate registers a per-user native messaging helper and copies the extension to a stable folder outside the application bundle.
+3. Open `chrome://extensions` or `edge://extensions`, enable **Developer mode**, and click **Load unpacked**. Select the folder shown in TasteMate (use **Copy path** or **Open folder**).
+4. Pin **TasteMate Capture**. On a website, click it or press **Alt/Option + Shift + T** to capture the visible page. Choose **Selected area** and drag on the preview to crop; **Expand** opens a larger editor. Keyboard users can enter crop coordinates as percentages.
+5. Choose an existing type, write **What works** and/or **What to avoid**, and save. At least one note is required. Custom types and their descriptions come from the desktop library.
+
+For writing, select a passage on a page, right-click, and choose **Save selection to TasteMate**. The editor also offers **Selected text** when text was selected before a screenshot capture. The source URL, capture timestamp, and selected passage are preserved. Notes apply to the chosen type; refine their scope, strength, or image pins later in the desktop app.
+
+**The main app window can be closed while capturing.** Chrome/Edge starts the small native helper using the installed app's bundled runtime. Clicking **View in TasteMate** opens the saved example. Keep the desktop app installed; after moving it, open it once to refresh helper paths. After an update, click **Reload** on the browser extension card. A source checkout must also stay in place when connected through `npm start`.
+
+### Drafts, privacy, and current limits
+
+- Capture happens only after clicking the extension, using its shortcut, or invoking its selection menu. The extension has no persistent permission to read every website and does not make network requests.
+- An unfinished capture is stored in the browser profile's IndexedDB. Closing the popup preserves it; reopening resumes it. One active draft is supported. Saving retains a small confirmation until **Done**. Discarding a draft removes its screenshot and notes from the extension.
+- The screenshot and annotations move into the desktop profile as an image plus structured JSON and Markdown. The extension clears the draft image after a successful save. Browser data is per browser profile; saved examples live in the current operating-system user's TasteMate folder.
+- Native messaging allows only the connected extension IDs. The browser helper exposes capture, type lookup, and opening an existing example; it does not expose arbitrary files or shell commands. No listening extension port, account, hosted database, model API, or telemetry is required.
+- A disconnected helper leaves the draft intact. Reconnect from the desktop app and retry. If a reply is lost after saving, the exact persisted request is retried with the same ID, preventing duplicate examples. A filesystem lock coordinates desktop, MCP startup, and browser writes.
+- Screenshots cover the **visible viewport**, with an optional crop; full-page stitching, video, Safari, and Firefox are not included. Captures are limited to ordinary HTTP/HTTPS pages. Browser settings, local files, and extension-store pages may block capture.
+- Text is limited to 20,000 characters and each image to 12 MB. Screenshot capture is JPEG; cropped areas are saved as PNG. Screenshot mode reads selected text in the main frame; use the selection context menu for text in embedded frames. No OCR or automatic AI interpretation is performed.
+- The native connection lets multiple browser profiles/extensions authorized by the same user access that user's desktop library. It does not isolate libraries by browser account. Separate OS accounts have separate libraries.
+
+### Development and verification
+
+`npm test` checks the HTTP library workflow, native framing, origin rejection, capture validation, retry recovery, concurrent writers, custom types, and MCP access to saved images. `npm run package && node scripts/smoke-packaged.mjs` checks both MCP and capture through the bundled runtime, including the native launcher and ASAR imports. CI runs these on Linux, Windows, and macOS (Mac checks also launch the GUI).
+
+`npm run extension:build` produces `out/extension/tastemate-capture-0.4.0.zip` with `manifest.json` at its root. The **Browser capture check** workflow uploads the same archive. Unzip it before choosing **Load unpacked**, and still connect the desktop helper. The manifest contains a public key to keep its development ID stable; it contains no private signing key. Browser-store publication and store IDs can be configured as a later release step.
+
 ## Storage format
 
 ```text
@@ -60,7 +91,7 @@ TasteMate/
   assets/<id>.png    Screenshots and images, with original bytes
 ```
 
-This is a per-user folder, not a hosted database. Put it in a private sync folder or private Git repository if you want it on other machines. Back up the entire folder; the app writes JSON atomically. Older examples with a `category` field still work; `website`, `app`, `writing`, `design`, and `other` map to the included type IDs. Their older notes are type-scoped by default. A URL capture keeps a title, description, and short readable text excerpt. It does not create a visual screenshot of the page, so attach an image if the visual design matters. Some sites prevent automated text capture; you can still save the URL and screenshots.
+This is a per-user folder, not a hosted database. Back up the entire folder; the app writes JSON atomically. If you sync it between computers, avoid editing the same library simultaneously on different machines: the filesystem lock coordinates local processes, not distributed sync conflicts. Older examples with a `category` field still work; `website`, `app`, `writing`, `design`, and `other` map to the included type IDs. Their older notes are type-scoped by default. The desktop's URL text capture keeps a title, description, and short excerpt; use the browser extension or attach an image when the visual design matters. Browser examples also store their capture mode and retry identity in the JSON record.
 
 ## Use with agents
 

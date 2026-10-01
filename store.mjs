@@ -1,7 +1,8 @@
 import { existsSync, promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import lockfile from 'proper-lockfile';
 
 const documentsDir = path.join(os.homedir(), 'Documents');
 const defaultDir = path.join(documentsDir, 'TasteMate');
@@ -27,16 +28,27 @@ const defaultTypes = [
 let writeQueue = Promise.resolve();
 
 export function withWriteLock(task) {
-  const next = writeQueue.then(task, task);
+  const run = async () => {
+    await fs.mkdir(dataDir, { recursive: true });
+    const release = await lockfile.lock(dataDir, {
+      realpath: false, lockfilePath: path.join(dataDir, '.tastemate-write.lock'),
+      stale: 30000, update: 10000,
+      retries: { retries: 100, factor: 1, minTimeout: 100, maxTimeout: 100 },
+    });
+    try { return await task(); } finally { await release(); }
+  };
+  const next = writeQueue.then(run, run);
   writeQueue = next.catch(() => {});
   return next;
 }
 
 export async function ensureStore() {
-  await fs.mkdir(examplesDir, { recursive: true });
-  await fs.mkdir(assetsDir, { recursive: true });
-  await listTypes();
-  await regenerate();
+  await withWriteLock(async () => {
+    await fs.mkdir(examplesDir, { recursive: true });
+    await fs.mkdir(assetsDir, { recursive: true });
+    await listTypes();
+    await regenerate();
+  });
 }
 
 export async function listTypes() {
@@ -154,6 +166,7 @@ export async function saveRecord(input, id = null) {
     context: cleanText(input.context, 2000), sourceText: cleanText(input.sourceText, 20000),
     capturedAt: cleanText(input.capturedAt, 40),
     assets: old?.assets || [], annotations: old?.annotations || [],
+    ...(old?.capture ? { capture: old.capture } : {}),
     createdAt: old?.createdAt || now, updatedAt: now,
   };
   if (!record.url && !record.sourceText && !record.assets.length && !input.allowEmpty) throw new Error('Add a URL, text, or image.');
@@ -188,12 +201,9 @@ export async function removeAnnotation(id, annotationId) {
 }
 
 const imageTypes = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
-export async function addAsset(id, { filename, mimeType, base64 }) {
-  const record = await getRecord(id);
-  if (!record) throw new Error('Example not found.');
+function prepareAsset({ filename, mimeType, base64 }) {
   const ext = imageTypes[mimeType];
   if (!ext) throw new Error('Use PNG, JPEG, WebP, or GIF images.');
-  if (record.assets.length >= 12) throw new Error('Each example can have up to 12 images.');
   if (typeof base64 !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) throw new Error('Invalid image data.');
   const bytes = Buffer.from(base64, 'base64');
   if (!bytes.length || bytes.length > 12 * 1024 * 1024) throw new Error('Images must be under 12 MB.');
@@ -205,12 +215,67 @@ export async function addAsset(id, { filename, mimeType, base64 }) {
   };
   if (!signatures[ext]) throw new Error('The image data does not match its file type.');
   const asset = { id: randomUUID(), filename: cleanText(filename, 180) || `image.${ext}`, mimeType, path: `assets/${randomUUID()}.${ext}` };
+  return { asset, bytes };
+}
+
+export async function addAsset(id, input) {
+  const record = await getRecord(id);
+  if (!record) throw new Error('Example not found.');
+  if (record.assets.length >= 12) throw new Error('Each example can have up to 12 images.');
+  const { asset, bytes } = prepareAsset(input);
   await fs.writeFile(path.join(dataDir, asset.path), bytes, { flag: 'wx' });
   record.assets.push(asset);
   record.updatedAt = new Date().toISOString();
   await atomicWrite(path.join(examplesDir, `${id}.json`), JSON.stringify(record, null, 2) + '\n');
   await regenerate();
   return record;
+}
+
+// Call under withWriteLock. Validate the entire capture before writing its source
+// record; its stable ID makes retries after a lost browser response safe.
+export async function saveCapture(input) {
+  if (!input || !/^[a-f0-9-]{36}$/.test(input.id || '')) throw new Error('Invalid capture ID.');
+  if (!['viewport', 'region', 'text'].includes(input.mode)) throw new Error('Invalid capture mode.');
+  const title = cleanText(input.title, 180);
+  if (!title) throw new Error('Give this example a title.');
+  const url = cleanUrl(input.url);
+  if (!url) throw new Error('Use an http or https URL.');
+  const sourceText = cleanText(input.sourceText, 20000);
+  if (typeof input.sourceText === 'string' && input.sourceText.length > 20000) throw new Error('Keep selected text under 20,000 characters.');
+  if (input.mode === 'text' && !sourceText) throw new Error('Select some text first.');
+  if (!Array.isArray(input.annotations) || !input.annotations.length || input.annotations.length > 10) throw new Error('Add at least one annotation (up to 10).');
+  if (input.annotations.some(a => !a || !['prefer', 'avoid'].includes(a.polarity))) throw new Error('Invalid annotation polarity.');
+  const annotations = input.annotations.map(a => normalizeAnnotation({ ...a, anchor: null, scope: 'type' }));
+  const image = input.mode === 'text' ? null : prepareAsset(input.image || {});
+  const capturedAt = new Date(input.capturedAt);
+  if (!Number.isFinite(capturedAt.getTime())) throw new Error('Invalid capture date.');
+  const region = input.mode === 'region' ? input.region : null;
+  if (region && (!['x', 'y', 'width', 'height'].every(k => Number.isFinite(region[k])) || region.x < 0 || region.y < 0 || region.width <= 0 || region.height <= 0 || region.x + region.width > 1.000001 || region.y + region.height > 1.000001)) throw new Error('Invalid capture region.');
+  if (input.mode === 'region' && !region) throw new Error('Select an area first.');
+  const normalized = { title, url, typeId: input.typeId, sourceText, mode: input.mode, capturedAt: capturedAt.toISOString(), region,
+    annotations: annotations.map(({ id, ...a }) => a), imageHash: image ? createHash('sha256').update(image.bytes).digest('hex') : null };
+  const requestHash = createHash('sha256').update(JSON.stringify(normalized)).digest('hex');
+  const existing = await getRecord(input.id);
+  if (existing) {
+    if (existing.capture?.requestHash !== requestHash) throw new Error('This capture was already saved. Start a new capture to add another example.');
+    await regenerate(); // Repairs derived files if a previous write was interrupted.
+    return existing;
+  }
+  if (!(await listTypes()).some(t => t.id === input.typeId)) throw new Error('Choose a valid example type. Refresh the type list and try again.');
+  const now = new Date().toISOString();
+  const record = { id: input.id, title, url, typeId: input.typeId, tags: [], context: '', sourceText, capturedAt: normalized.capturedAt,
+    assets: image ? [image.asset] : [], annotations, createdAt: now, updatedAt: now,
+    capture: { source: 'browser-extension', mode: input.mode, region, requestHash } };
+  let committed = false;
+  try {
+    if (image) await fs.writeFile(path.join(dataDir, image.asset.path), image.bytes, { flag: 'wx' });
+    await atomicWrite(path.join(examplesDir, `${record.id}.json`), JSON.stringify(record, null, 2) + '\n');
+    committed = true;
+    await regenerate();
+    return record;
+  } finally {
+    if (!committed && image) await fs.rm(path.join(dataDir, image.asset.path), { force: true });
+  }
 }
 
 export async function removeAsset(id, assetId) {
@@ -244,6 +309,7 @@ export function renderExample(record, type = { label: record.typeId || record.ca
     `- **Type:** ${type.label} (ID: ${type.id || record.typeId || record.category})`,
     `- **Source:** ${record.url || 'Local example'}`,
     `- **Captured:** ${record.capturedAt || record.createdAt.slice(0, 10)}`,
+    ...(record.capture ? [`- **Capture:** Browser ${record.capture.mode === 'text' ? 'text selection' : record.capture.mode === 'region' ? 'screenshot of selected area' : 'visible-page screenshot'}`] : []),
     `- **Tags:** ${record.tags.join(', ') || 'None'}`,
     `- **Example ID:** ${record.id}`, '',
     '## Context', '', record.context || 'No extra context supplied.', '',
